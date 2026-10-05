@@ -1,0 +1,15 @@
+command:
+  - streamlit
+  - run
+  - app.py
+  - --server.port
+  - "$DATABRICKS_APP_PORT"
+  - --server.address
+  - "0.0.0.0"
+env:
+  - name: YOUTUBE_API_KEY
+    value: "YOUR_YOUTUBE_API_KEY"
+  - name: PROXY_USER
+    value: "YOUR_WEBSHARE_PROXY_USERNAME"
+  - name: PROXY_PASS
+    value: "YOUR_WEBSHARE_PROXY_PASSWORD"

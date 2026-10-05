@@ -1,0 +1,12 @@
+# Sensitive files (keep sanitized versions only)
+# Do not commit real credentials
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# IDE
+.vscode/
+.idea/
