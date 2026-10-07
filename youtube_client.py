@@ -3,6 +3,9 @@ from datetime import date
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Try Databricks Secrets first (runtime), fall back to env var (local dev)
 try:

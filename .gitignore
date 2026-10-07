@@ -10,3 +10,6 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+.venv
+venv
+api_test_results

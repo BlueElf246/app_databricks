@@ -5,6 +5,9 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def _get_proxy_url() -> Optional[str]:

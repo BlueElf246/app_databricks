@@ -2,6 +2,9 @@ import os
 from typing import Any
 
 import psycopg
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # --- Lakebase Postgres connection (configure via env vars) ---
 PGHOST = os.environ.get("PGHOST", "your-lakebase-endpoint.database.us-east-2.cloud.databricks.com")
@@ -9,6 +12,7 @@ PGDATABASE = os.environ.get("PGDATABASE", "databricks_postgres")
 PGUSER = os.environ.get("PGUSER", "your_postgres_user")
 PGPASSWORD = os.environ.get("PGPASSWORD", "YOUR_POSTGRES_PASSWORD")
 PGPORT = int(os.environ.get("PGPORT", "5432"))
+PGSSLMODE = os.environ.get("PGSSLMODE", "require")
 
 APP_SCHEMA = os.environ.get("APP_SCHEMA", "public")
 
@@ -21,7 +25,7 @@ def get_connection() -> psycopg.Connection:
         user=PGUSER,
         password=PGPASSWORD,
         port=PGPORT,
-        sslmode="require",
+        sslmode=PGSSLMODE,
     )
     return conn
 
