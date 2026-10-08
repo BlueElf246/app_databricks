@@ -9,7 +9,3 @@ command:
 env:
   - name: YOUTUBE_API_KEY
     value: "YOUR_YOUTUBE_API_KEY"
-  - name: PROXY_USER
-    value: "YOUR_WEBSHARE_PROXY_USERNAME"
-  - name: PROXY_PASS
-    value: "YOUR_WEBSHARE_PROXY_PASSWORD"

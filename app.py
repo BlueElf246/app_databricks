@@ -1,10 +1,18 @@
 import streamlit as st
 
-from database import get_saved_videos, init_db, upsert_videos
-from transcript import get_transcript
+from database import (
+    get_saved_videos,
+    init_db,
+    log_search_results,
+    upsert_channels,
+    upsert_comments,
+    upsert_videos,
+)
 from youtube_client import (
     YouTubeClientError,
-    get_video_statistics,
+    get_channels,
+    get_comment_threads,
+    get_video_details,
     search_videos,
 )
 
@@ -25,17 +33,10 @@ except Exception as e:
 st.title("🔎 Tìm kiếm video YouTube")
 st.caption("Tìm video review quán ăn — kết nối trực tiếp Lakebase Postgres")
 
-# --- Transcript section ---
-with st.expander("📝 Lấy transcript video"):
-    transcript_vid = st.text_input("Video ID", value="", key="transcript_vid")
-    if st.button("Lấy transcript", key="btn_transcript"):
-        try:
-            with st.spinner("Đang tải transcript..."):
-                result = get_transcript(transcript_vid, lang="vi")
-            st.success(f"✅ {len(result['segments'])} đoạn | Ngôn ngữ: {result['language']}")
-            st.text_area("Transcript", value=result["full_text"], height=300, key="transcript_output")
-        except Exception as e:
-            st.error(f"❌ {e}")
+if "search_videos_result" not in st.session_state:
+    st.session_state["search_videos_result"] = []
+if "loaded_comments" not in st.session_state:
+    st.session_state["loaded_comments"] = {}
 
 query = st.text_input(
     "Từ khóa tìm kiếm",
@@ -83,85 +84,117 @@ if st.button("Tìm kiếm", type="primary"):
 
             if not items:
                 st.info("Không tìm thấy video.")
+                st.session_state["search_videos_result"] = []
             else:
-                videos = []
+                # search.list is discovery-only (snippet, no statistics) — log it,
+                # then pull full details per video from videos.list below.
+                search_entries = []
+                video_ids = []
                 for item in items:
                     video_id = item.get("id", {}).get("videoId")
                     snippet = item.get("snippet", {})
                     if not video_id:
                         continue
-                    videos.append({
+                    video_ids.append(video_id)
+                    search_entries.append({
                         "video_id": video_id,
-                        "title": snippet.get("title"),
-                        "description": snippet.get("description"),
                         "channel_id": snippet.get("channelId"),
-                        "channel_title": snippet.get("channelTitle"),
+                        "title": snippet.get("title"),
                         "published_at": snippet.get("publishedAt"),
-                        "thumbnail_url": (
-                            snippet.get("thumbnails", {})
-                            .get("high", {})
-                            .get("url")
-                        ),
-                        "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                        "search_keyword": query,
                     })
 
-                stats = get_video_statistics(
-                    [v["video_id"] for v in videos]
-                )
+                details = get_video_details(video_ids)
+                videos = [details[vid] for vid in video_ids if vid in details]
                 for video in videos:
-                    video.update(stats.get(video["video_id"], {}))
+                    video["video_url"] = f"https://www.youtube.com/watch?v={video['video_id']}"
 
+                channel_ids = list({v["channel_id"] for v in videos if v.get("channel_id")})
+                channels = get_channels(channel_ids)
+
+                upsert_channels(list(channels.values()))
                 upsert_videos(videos)
+                log_search_results(search_entries)
 
-                st.success(f"Tìm thấy {len(videos)} video. Đã lưu vào database.")
-
-                for video in videos:
-                    left, right = st.columns([1, 3])
-
-                    with left:
-                        thumbnail_url = video.get("thumbnail_url")
-                        if thumbnail_url:
-                            st.image(thumbnail_url, use_container_width=True)
-
-                    with right:
-                        st.subheader(video.get("title", "Không có tiêu đề"))
-                        st.write(
-                            f"**Kênh:** {video.get('channel_title', 'Không rõ')}"
-                        )
-
-                        view_count = video.get("view_count")
-                        like_count = video.get("like_count")
-
-                        st.write(
-                            f"**Lượt xem:** {view_count:,}"
-                            if view_count is not None
-                            else "**Lượt xem:** Không có dữ liệu"
-                        )
-                        st.write(
-                            f"**Lượt thích:** {like_count:,}"
-                            if like_count is not None
-                            else "**Lượt thích:** Không có dữ liệu"
-                        )
-                        st.write(
-                            f"**Ngày đăng:** {video.get('published_at', 'Không rõ')}"
-                        )
-
-                        video_url = video.get("video_url")
-                        if video_url:
-                            st.link_button("Xem video trên YouTube", video_url)
-
-                        with st.expander(f"📝 Transcript — {video['video_id']}"):
-                            if st.button("Lấy transcript", key=f"tc_{video['video_id']}"):
-                                try:
-                                    with st.spinner("Đang tải..."):
-                                        tc = get_transcript(video["video_id"], lang="vi")
-                                    st.text_area("Nội dung", value=tc["full_text"], height=200, key=f"tc_text_{video['video_id']}")
-                                except Exception as e:
-                                    st.error(f"❌ {e}")
-
-                    st.divider()
+                st.session_state["search_videos_result"] = videos
 
         except YouTubeClientError as error:
             st.error(f"Lỗi YouTube API: {error.detail}")
         except Exception as error:
             st.error(f"Có lỗi: {error}")
+
+# Rendered from session_state (not gated behind the search button) so that
+# clicking "Lấy bình luận" below — which also triggers a rerun — doesn't
+# wipe the results back to the pre-search screen.
+videos = st.session_state["search_videos_result"]
+
+if videos:
+    st.success(f"Tìm thấy {len(videos)} video. Đã lưu vào database.")
+
+    for video in videos:
+        left, right = st.columns([1, 3])
+
+        with left:
+            thumbnail_url = video.get("thumbnail_url")
+            if thumbnail_url:
+                st.image(thumbnail_url, use_container_width=True)
+
+        with right:
+            st.subheader(video.get("title", "Không có tiêu đề"))
+            st.write(
+                f"**Kênh:** {video.get('channel_title', 'Không rõ')}"
+            )
+
+            view_count = video.get("view_count")
+            like_count = video.get("like_count")
+
+            st.write(
+                f"**Lượt xem:** {view_count:,}"
+                if view_count is not None
+                else "**Lượt xem:** Không có dữ liệu"
+            )
+            st.write(
+                f"**Lượt thích:** {like_count:,}"
+                if like_count is not None
+                else "**Lượt thích:** Không có dữ liệu"
+            )
+            comment_count = video.get("comment_count")
+            st.write(
+                f"**Bình luận:** {comment_count:,}"
+                if comment_count is not None
+                else "**Bình luận:** Không có dữ liệu"
+            )
+            st.write(
+                f"**Ngày đăng:** {video.get('published_at', 'Không rõ')}"
+            )
+
+            video_url = video.get("video_url")
+            if video_url:
+                st.link_button("Xem video trên YouTube", video_url)
+
+            with st.expander(f"📄 Mô tả đầy đủ — {video['video_id']}"):
+                st.text(video.get("description") or "Không có mô tả.")
+
+            with st.expander(f"💬 Bình luận — {video['video_id']}"):
+                if st.button("Lấy bình luận", key=f"cm_{video['video_id']}"):
+                    try:
+                        with st.spinner("Đang tải bình luận..."):
+                            video_comments = get_comment_threads(video["video_id"])
+                            upsert_comments(video_comments)
+                        st.session_state["loaded_comments"][video["video_id"]] = video_comments
+                    except YouTubeClientError as e:
+                        st.error(f"❌ {e.detail}")
+
+                loaded = st.session_state["loaded_comments"].get(video["video_id"])
+                if loaded is not None:
+                    if not loaded:
+                        st.info("Video này không có bình luận.")
+                    else:
+                        for c in loaded:
+                            st.write(
+                                f"**{c.get('author_display_name', 'Ẩn danh')}** "
+                                f"({c.get('like_count', 0)} lượt thích): "
+                                f"{c.get('text', '')}"
+                            )
+
+        st.divider()

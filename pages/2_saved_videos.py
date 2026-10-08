@@ -64,6 +64,7 @@ try:
                 "Kênh": video.get("channel_title"),
                 "Lượt xem": video.get("view_count"),
                 "Lượt thích": video.get("like_count"),
+                "Bình luận": video.get("comment_count"),
                 "Ngày đăng": video.get("published_at"),
                 "Cập nhật": str(video.get("updated_at", "")),
             }
@@ -90,6 +91,7 @@ try:
                     st.write(f"**Kênh:** {video.get('channel_title', 'Không rõ')}")
                     st.write(f"**Lượt xem:** {video.get('view_count', 'Không có dữ liệu')}")
                     st.write(f"**Lượt thích:** {video.get('like_count', 'Không có dữ liệu')}")
+                    st.write(f"**Bình luận:** {video.get('comment_count', 'Không có dữ liệu')}")
                     st.write(f"**Cập nhật lần cuối:** {str(video.get('updated_at', 'Không rõ'))}")
 
                     video_url = video.get("video_url")
