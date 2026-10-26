@@ -1,140 +1,126 @@
-# YouTube Restaurant Search — Databricks App
+# YouTube Restaurant Search — Databricks App + Kimball medallion pipeline
 
-Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Postgres, và lấy transcript tiếng Việt.
+Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Postgres, và một pipeline Bronze → Silver → Gold (Kimball) trên Databricks để xếp hạng quán ăn theo dữ liệu YouTube.
 
 ## Tính năng
 
-- 🔎 Tìm kiếm video YouTube qua YouTube Data API v3
-- 💾 Lưu video vào Lakebase Postgres (UPSERT)
-- 📝 Lấy transcript tiếng Việt qua proxy (Webshare)
-- 📊 Xem danh sách video đã lưu với filters & pagination
+- 🔎 Tìm kiếm video YouTube qua YouTube Data API v3, lưu video / kênh / kết quả tìm kiếm (kèm `search_order`, `result_rank`) vào Lakebase Postgres (UPSERT)
+- 💬 Lấy bình luận của video
+- 💾 Xem danh sách video đã lưu với filters & pagination
+- 🏆 Xếp hạng quán ăn từ Gold model (`prod.gold.agg_restaurant_ranking`)
+- 🔁 Refresh hằng ngày + pipeline medallion chạy bằng một Databricks job
 
 ## Cấu trúc
 
 ```
-├── app.py              # Streamlit main page
-├── app.yaml            # Databricks App config (env vars)
-├── database.py         # Lakebase Postgres connection
-├── transcript.py       # YouTube transcript fetcher (proxy + direct download)
-├── youtube_client.py   # YouTube Data API v3 client
-├── requirements.txt    # Python dependencies
-└── pages/
-    └── 2_saved_videos.py  # Saved videos page
+├── app.py                      # Streamlit main page: search, save, comments
+├── app.yaml                    # Databricks App config (env vars)
+├── database.py                 # Lakebase Postgres connection + schema migration (init_db)
+├── youtube_client.py           # YouTube Data API v3 client
+├── gold_client.py              # Read-only access to prod.gold via a SQL warehouse
+├── refresh_daily.py            # Daily re-read of saved videos / channels (with empty-source guard)
+├── requirements.txt
+├── pages/
+│   ├── 2_saved_videos.py       # Saved videos page
+│   └── 3_restaurant_ranking.py # Restaurant ranking page (Gold)
+└── Analytic/                   # Databricks notebooks (pipeline)
+    ├── landing/                # Old raw ingest (kept for reference)
+    ├── refresh/run_refresh     # Job step 1: runs refresh_daily.py on serverless
+    ├── bronze/ingest_raw       # Lakebase → prod.bronze.*_raw (append-only)
+    ├── stg/                    # Bronze → prod.silver.stg_* (+ LLM restaurant extraction)
+    ├── gold/                   # Kimball dims, facts, checks, restaurant dim, ranking
+    └── jobs/                   # Daily job spec (project1_daily_job.json, make_job.py)
 ```
 
-## Setup
+## App setup
 
-### 1. Environment Variables (app.yaml)
+### 1. Environment variables
 
-```yaml
-env:
-  - name: YOUTUBE_API_KEY
-    value: "YOUR_YOUTUBE_API_KEY"
-  - name: PROXY_USER
-    value: "YOUR_WEBSHARE_PROXY_USERNAME"
-  - name: PROXY_PASS
-    value: "YOUR_WEBSHARE_PROXY_PASSWORD"
-```
+Local: `.env` (see `.env.example`). Databricks App: `app.yaml` / app resources.
 
-### 2. Lakebase Postgres
+| Variable | Used by | Note |
+| --- | --- | --- |
+| `YOUTUBE_API_KEY` | `youtube_client.py` | On Databricks read from secret `youtube/api_key` first |
+| `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT`, `PGSSLMODE`, `APP_SCHEMA` | `database.py` | Lakebase Postgres (project `my-database`, branch `production`) |
+| `DATABRICKS_WAREHOUSE_ID`, `GOLD_SCHEMA` | `gold_client.py` | Defaults: Serverless Starter warehouse, `prod.gold` |
+| `DATABRICKS_CONFIG_PROFILE` (or `DATABRICKS_HOST` + token) | `gold_client.py` | Local only; the deployed app uses its service principal |
 
-Set the following env vars in `database.py` or via app config:
-- `PGHOST` — Lakebase Postgres endpoint
-- `PGDATABASE` — Database name
-- `PGUSER` — Postgres username
-- `PGPASSWORD` — Postgres password
+The ranking page needs **CAN USE** on the SQL warehouse and **SELECT** on `prod.gold` for whoever runs the app (your user locally, the app's service principal when deployed).
 
-### 3. Install & Run
+### 2. Install & run
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Transcript Approach
+`init_db()` creates / migrates the Postgres tables on start (`ADD COLUMN IF NOT EXISTS`, so it is safe to rerun).
 
-YouTube blocks cloud IPs from scraping transcripts. This app uses a two-step approach:
-1. **Proxy** (Webshare) scrapes the YouTube watch page to get the signed caption URL
-2. **Direct download** (no proxy) fetches the caption XML from the signed URL
+## Data pipeline (Kimball medallion)
 
-Signed URLs are not IP-restricted, so step 2 works from any IP.
+Design: Notion "Redesign Project 1 data model with Kimball" (1.3 dimensions, 1.4 facts, 1.5 layers and load patterns).
 
+```
+YouTube API ─► app (search / save) ─┐
+            └► refresh_daily.py ────┴─► Lakebase Postgres public.* (latest values only)
+                                          │  (foreign catalog lakebase_pg)
+                                          ▼
+   BRONZE prod.bronze.*_raw        append-only copy of every read, partitioned by ingest_date, 180-day retention
+                                          ▼
+   SILVER prod.silver.stg_*        typed, deduped, history by snapshot_date; + stg_restaurant_mentions (LLM)
+                                          ▼
+   GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2)
+                                   fact_video_daily_snapshot, fact_channel_daily_snapshot, fact_comment,
+                                   fact_search_hit, fact_video_restaurant_mention
+                                   agg_restaurant_ranking  ─► app page "🏆 Xếp hạng quán ăn"
+```
 
-------
-# Handoff: Project 1 — YouTube API ingestion pipeline (food/restaurant review verification app)
+| Layer | Table | Grain | Load |
+| --- | --- | --- | --- |
+| Bronze | `videos_raw`, `channels_raw`, `comments_raw`, `search_results_raw` | 1 row per source row per read | Append, watermark on `COALESCE(updated_at, created_at)` (`fetched_at` for search results); new source columns are added automatically |
+| Silver | `stg_videos`, `stg_channels` | id × `snapshot_date` (Vietnam day) | MERGE on the grain (latest Bronze read wins) |
+| Silver | `stg_comments` / `stg_search_results` | `comment_id` / `id` | MERGE / insert-only MERGE |
+| Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description, only for new / changed videos (`stg_restaurant_extraction_log`) |
+| Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
+| Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
+| Gold | `dim_restaurant` | one row per version | SCD 2 on address / location (name is type 1); dedup = same normalized name + district (no geocoder yet) |
+| Gold | `fact_video_daily_snapshot`, `fact_channel_daily_snapshot` | id × snapshot day | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` additive |
+| Gold | `fact_comment` / `fact_search_hit` | comment / run × keyword × video | MERGE / insert-only MERGE |
+| Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
+| Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city) |
 
-Notion: Project 1 → tasks "Explore API" (done), "Test API" (done), "Desgin database" (in progress)
+`Analytic/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
-## Confirmed working endpoints (API key auth)
-- `search.list`
-- `videos.list`
-- `channels.list`
-- `commentThreads.list`
-- `captions.list` — needs OAuth2, **not** usable with API key. Workaround: extract restaurant info from video description + comments instead.
+### Daily job
 
-## Recommended table / field mapping
-(also written to the Notion "Desgin database" page)
+Job **"Project 1 — YouTube restaurants medallion (daily)"** (spec: `Analytic/jobs/project1_daily_job.json`), serverless, 01:00 `Asia/Ho_Chi_Minh`, emails on failure. Each step depends on the previous one, so a failure stops everything after it:
 
-### dim_channel — from channels.list
-| col_name | data_type | source JSON path |
-|---|---|---|
-| channel_id | string | items[].id |
-| channel_title | string | items[].snippet.title |
-| channel_description | string | items[].snippet.description |
-| custom_url | string | items[].snippet.customUrl |
-| country | string | items[].snippet.country |
-| default_language | string | items[].snippet.defaultLanguage |
-| published_at | timestamp | items[].snippet.publishedAt |
-| subscriber_count | bigint | items[].statistics.subscriberCount |
-| view_count | bigint | items[].statistics.viewCount |
-| video_count | int | items[].statistics.videoCount |
-| thumbnail_url | string | items[].snippet.thumbnails.high.url |
+```
+refresh_daily → bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results
+  → stg_restaurant_mentions → gold_dims → gold_facts + gold_restaurants → gold_checks → gold_agg_ranking
+```
 
-### fact_video — from videos.list
-| col_name | data_type | source JSON path |
-|---|---|---|
-| video_id | string | items[].id |
-| channel_id | string | items[].snippet.channelId (FK → dim_channel) |
-| title | string | items[].snippet.title |
-| description | string | items[].snippet.description (raw text — restaurant name/address/price extracted downstream) |
-| published_at | timestamp | items[].snippet.publishedAt |
-| category_id | string | items[].snippet.categoryId |
-| tags | array<string> | items[].snippet.tags |
-| duration | string | items[].contentDetails.duration (ISO 8601) |
-| definition | string | items[].contentDetails.definition (hd/sd) |
-| has_caption | boolean | items[].contentDetails.caption |
-| view_count | bigint | items[].statistics.viewCount |
-| like_count | bigint | items[].statistics.likeCount |
-| comment_count | bigint | items[].statistics.commentCount |
-| thumbnail_url | string | items[].snippet.thumbnails.high.url |
+Guards: `refresh_daily.py` reads everything first and stops **before writing** if the API returns 0 rows or more than 20% zero counters; all writes are atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); every date key uses Vietnam time.
 
-### fact_comment — from commentThreads.list
-| col_name | data_type | source JSON path |
-|---|---|---|
-| comment_id | string | items[].snippet.topLevelComment.id |
-| video_id | string | items[].snippet.videoId (FK → fact_video) |
-| author_display_name | string | ...topLevelComment.snippet.authorDisplayName |
-| author_channel_id | string | ...topLevelComment.snippet.authorChannelId.value |
-| text_display | string | ...topLevelComment.snippet.textDisplay |
-| like_count | bigint | ...topLevelComment.snippet.likeCount |
-| published_at | timestamp | ...topLevelComment.snippet.publishedAt |
-| total_reply_count | int | items[].snippet.totalReplyCount |
+The refresh step needs secrets in scope `youtube`: `pg_password` (Postgres role `admin`) and `api_key` (YouTube Data API v3). Job parameter `dry_run=true` calls the API and runs the guard without writing.
 
-### stg_search_result — from search.list (staging/discovery only, not retained long-term)
-| col_name | data_type | source JSON path |
-|---|---|---|
-| video_id | string | items[].id.videoId |
-| channel_id | string | items[].snippet.channelId |
-| title | string | items[].snippet.title |
-| published_at | timestamp | items[].snippet.publishedAt |
-| search_keyword | string | input param (log the query that produced this row) |
+To rebuild the job spec after changing the task list: `python Analytic/jobs/make_job.py UNPAUSED > Analytic/jobs/project1_daily_job.json`, then `databricks jobs reset`.
 
-**Grain:** dim_channel = 1 row/channel. fact_video = 1 row/video (FK channel_id). fact_comment = 1 row/top-level comment (FK video_id). Matches MVP phase order (videos + channels first, comments later).
+### Run the refresh locally
 
-**Naming convention** (dim_/fact_/stg_) borrowed from the `data-testing-datdev` repo's docs style for reference only — not the actual codebase.
+```bash
+python refresh_daily.py --dry-run   # call the API, run the guard, write nothing
+python refresh_daily.py             # write to Postgres
+```
 
-## Links
-- Notion "Desgin database" task: https://app.notion.com/p/3f3053b1b7ea805f9484c281a375efcf
+## YouTube API notes
 
-## Note
-This file lives in the `data-testing-datdev` repo (Windows), which is **unrelated** to Project 1. The real Project 1 codebase is on WSL at `/home/datlm11/app_databricks`. Copy this file's content over manually (or re-save it there) when you start the session in that directory — there is no automated sync between the two.
+- Works with an API key: `search.list`, `videos.list`, `channels.list`, `commentThreads.list`, `videoCategories.list`.
+- `captions.list` needs OAuth2, so restaurant info is extracted from the video title / description instead.
+- `videos.list` / `channels.list` cost 1 unit per 50 ids, so the daily refresh stays far below the 10,000 units/day quota.
+
+## Known limits
+
+- No geocoder: `dim_restaurant.latitude` / `longitude` / `place_id` are NULL and dedup uses name + district.
+- Snapshot history before 2026-10-26 is sparse (no daily refresh yet), so the first gains cover more than one day.
+- `dim_keyword.dish` / `city` are NULL until keyword parsing is built; `search_order` / `result_rank` are NULL for searches before 2026-10-26.
