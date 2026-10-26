@@ -40,6 +40,8 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 
 ## Deploy (Databricks Asset Bundle)
 
+Step-by-step guide (setup, secrets, deploy, run, troubleshooting): [docs/BUNDLE_MANUAL.md](docs/BUNDLE_MANUAL.md).
+
 Workspace `https://dbc-66b44822-7fe7.cloud.databricks.com`, Databricks CLI ≥ 0.270.
 
 | Target | Schemas | Job | Refresh step | Root path |
