@@ -163,10 +163,16 @@ def init_db() -> None:
                     title          TEXT,
                     published_at   TIMESTAMPTZ,
                     search_keyword TEXT NOT NULL,
-                    fetched_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    fetched_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    search_order   TEXT,
+                    result_rank    INT
                 )
                 """
             )
+            # search_order / result_rank: the `order` sent to search.list and the
+            # 1-based position in its results (fact_search_hit in the Gold model).
+            _try_execute(cur, "ALTER TABLE search_results ADD COLUMN IF NOT EXISTS search_order TEXT")
+            _try_execute(cur, "ALTER TABLE search_results ADD COLUMN IF NOT EXISTS result_rank INT")
             cur.execute(
                 "CREATE INDEX IF NOT EXISTS idx_search_results_video_id "
                 "ON search_results (video_id)"
@@ -338,9 +344,10 @@ def log_search_results(entries: list[dict[str, Any]]) -> None:
             cur.executemany(
                 """
                 INSERT INTO search_results (
-                    video_id, channel_id, title, published_at, search_keyword
+                    video_id, channel_id, title, published_at, search_keyword,
+                    search_order, result_rank
                 )
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     (
@@ -349,6 +356,8 @@ def log_search_results(entries: list[dict[str, Any]]) -> None:
                         e.get("title"),
                         e.get("published_at"),
                         e["search_keyword"],
+                        e.get("search_order"),
+                        e.get("result_rank"),
                     )
                     for e in entries
                 ],

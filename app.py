@@ -90,7 +90,7 @@ if st.button("Tìm kiếm", type="primary"):
                 # then pull full details per video from videos.list below.
                 search_entries = []
                 video_ids = []
-                for item in items:
+                for rank, item in enumerate(items, start=1):
                     video_id = item.get("id", {}).get("videoId")
                     snippet = item.get("snippet", {})
                     if not video_id:
@@ -102,6 +102,8 @@ if st.button("Tìm kiếm", type="primary"):
                         "title": snippet.get("title"),
                         "published_at": snippet.get("publishedAt"),
                         "search_keyword": query,
+                        "search_order": order,
+                        "result_rank": rank,
                     })
 
                 details = get_video_details(video_ids)
