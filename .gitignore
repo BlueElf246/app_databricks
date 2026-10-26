@@ -13,3 +13,5 @@ __pycache__/
 .venv
 venv
 api_test_results
+# Databricks Asset Bundle local state
+.databricks/

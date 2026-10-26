@@ -1,0 +1,59 @@
+# Databricks Asset Bundle: Project 1 — YouTube restaurant search app + Kimball medallion pipeline.
+#   databricks bundle validate --strict            # dev (default)
+#   databricks bundle deploy                       # dev: prod.dev_* schemas, "[dev]" job, schedule paused, refresh dry run
+#   databricks bundle deploy -t prod               # prod: prod.bronze / silver / gold, real names
+#
+# dev does not use `mode: development`: that mode renames UC schemas to dev_<user>_*, and dev
+# should write to prod.dev_bronze / prod.dev_silver / prod.dev_gold (same catalog as prod).
+bundle:
+  name: project1_youtube_restaurants
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog holding the bronze / silver / gold schemas
+    default: prod
+  schema_prefix:
+    description: Prefix of the bronze / silver / gold schema names (dev_ in dev, empty in prod)
+    default: dev_
+  job_name_prefix:
+    description: Prefix of the job name, so dev and prod jobs are easy to tell apart
+    default: "[dev] "
+  warehouse_id:
+    description: SQL warehouse the app uses to read Gold
+    lookup:
+      warehouse: Serverless Starter Warehouse
+  app_name:
+    description: "App name: lowercase letters, digits, and hyphens; maximum 30 characters"
+    default: yt-search-${workspace.current_user.domain_friendly_name}
+  dry_run:
+    description: "true = the refresh step calls the YouTube API and runs the guard but writes nothing to Postgres"
+    default: "true"
+  schedule_pause_status:
+    description: PAUSED or UNPAUSED for the daily schedule
+    default: PAUSED
+  notification_email:
+    description: Who gets the job failure email
+    default: ${workspace.current_user.userName}
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://dbc-66b44822-7fe7.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-66b44822-7fe7.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema_prefix: ""
+      job_name_prefix: ""
+      app_name: youtube-restaurant-search
+      dry_run: "false"
+      # Set to UNPAUSED once the secret youtube/api_key exists and a dry run passed.
+      schedule_pause_status: PAUSED

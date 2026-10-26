@@ -1,0 +1,36 @@
+# Medallion schemas (design 1.5): prod.bronze / silver / gold, and prod.dev_* in the dev target. The job
+# passes the resolved catalog.schema names to every notebook, so nothing is hard-coded.
+resources:
+  schemas:
+    bronze:
+      catalog_name: ${var.catalog}
+      name: ${var.schema_prefix}bronze
+      comment: "Project 1 medallion: bronze layer (append-only copy of every Lakebase read)"
+    silver:
+      catalog_name: ${var.catalog}
+      name: ${var.schema_prefix}silver
+      comment: "Project 1 medallion: silver layer (typed, deduped, history by snapshot_date)"
+    gold:
+      catalog_name: ${var.catalog}
+      name: ${var.schema_prefix}gold
+      comment: "Project 1 medallion: gold layer (Kimball dimensions, facts, ranking)"
+
+targets:
+  prod:
+    resources:
+      schemas:
+        bronze:
+          lifecycle:
+            prevent_destroy: true
+        silver:
+          lifecycle:
+            prevent_destroy: true
+        gold:
+          lifecycle:
+            prevent_destroy: true
+          # The deployed app reads the ranking page from Gold.
+          grants:
+            - principal: ${resources.apps.youtube_search.service_principal_client_id}
+              privileges:
+                - USE_SCHEMA
+                - SELECT

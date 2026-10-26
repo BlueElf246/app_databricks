@@ -1,0 +1,25 @@
+command:
+  - streamlit
+  - run
+  - app.py
+  - --server.port
+  - "$DATABRICKS_APP_PORT"
+  - --server.address
+  - "0.0.0.0"
+env:
+  # Lakebase Postgres (project my-database, branch production)
+  - name: PGHOST
+    value: "ep-still-butterfly-d8fd3r70.database.us-east-2.cloud.databricks.com"
+  - name: PGDATABASE
+    value: "databricks_postgres"
+  - name: PGUSER
+    value: "admin"
+  - name: PGPASSWORD
+    valueFrom: pg-password
+  - name: APP_SCHEMA
+    value: "public"
+  # Gold model for the ranking page (YOUTUBE_API_KEY is read from secret youtube/api_key)
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: GOLD_SCHEMA
+    value: "prod.gold"

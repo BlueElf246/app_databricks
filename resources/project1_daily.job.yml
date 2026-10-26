@@ -1,0 +1,109 @@
+# Daily medallion job (design 1.5 "Daily job order"). Each task depends on the previous step,
+# so a failure (empty-source guard, Gold checks) stops everything after it.
+resources:
+  jobs:
+    project1_daily:
+      name: ${var.job_name_prefix}Project 1 — YouTube restaurants medallion (daily)
+      description: >-
+        refresh → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_ranking.
+        Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
+      schedule:
+        quartz_cron_expression: "0 0 1 * * ?"
+        timezone_id: Asia/Ho_Chi_Minh
+        pause_status: ${var.schedule_pause_status}
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tags:
+        project: project1
+        layer: medallion
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        - name: dry_run
+          default: ${var.dry_run}
+      tasks:
+        - task_key: refresh_daily
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
+          timeout_seconds: 1800
+
+        - task_key: bronze_ingest
+          depends_on: [{task_key: refresh_daily}]
+          notebook_task:
+            notebook_path: ../src/notebooks/bronze/ingest_raw.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_channels
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/channels.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_videos
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/videos.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_comments
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/comments.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_search_results
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/search_results.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_restaurant_mentions
+          depends_on: [{task_key: stg_videos}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/restaurant_mentions.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_dims
+          depends_on:
+            - task_key: stg_channels
+            - task_key: stg_videos
+            - task_key: stg_comments
+            - task_key: stg_search_results
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/dims.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_facts
+          depends_on: [{task_key: gold_dims}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/facts.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_restaurants
+          depends_on:
+            - task_key: gold_dims
+            - task_key: stg_restaurant_mentions
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/restaurants.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_checks
+          depends_on:
+            - task_key: gold_facts
+            - task_key: gold_restaurants
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/checks.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_agg_ranking
+          depends_on: [{task_key: gold_checks}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
+          timeout_seconds: 1800

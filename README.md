@@ -9,34 +9,62 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 - 💾 Xem danh sách video đã lưu với filters & pagination
 - 🏆 Xếp hạng quán ăn từ Gold model (`prod.gold.agg_restaurant_ranking`)
 - 🔁 Refresh hằng ngày + pipeline medallion chạy bằng một Databricks job
+- 📦 Toàn bộ job, app và schemas được deploy bằng một Databricks Asset Bundle (`databricks.yml`)
 
 ## Cấu trúc
 
 ```
-├── app.py                      # Streamlit main page: search, save, comments
-├── app.yaml                    # Databricks App config (env vars)
-├── database.py                 # Lakebase Postgres connection + schema migration (init_db)
-├── youtube_client.py           # YouTube Data API v3 client
-├── gold_client.py              # Read-only access to prod.gold via a SQL warehouse
-├── refresh_daily.py            # Daily re-read of saved videos / channels (with empty-source guard)
-├── requirements.txt
-├── pages/
-│   ├── 2_saved_videos.py       # Saved videos page
-│   └── 3_restaurant_ranking.py # Restaurant ranking page (Gold)
-└── Analytic/                   # Databricks notebooks (pipeline)
-    ├── landing/                # Old raw ingest (kept for reference)
-    ├── refresh/run_refresh     # Job step 1: runs refresh_daily.py on serverless
-    ├── bronze/ingest_raw       # Lakebase → prod.bronze.*_raw (append-only)
-    ├── stg/                    # Bronze → prod.silver.stg_* (+ LLM restaurant extraction)
-    ├── gold/                   # Kimball dims, facts, checks, restaurant dim, ranking
-    └── jobs/                   # Daily job spec (project1_daily_job.json, make_job.py)
+├── databricks.yml                  # Bundle: variables + targets dev / prod
+├── resources/
+│   ├── project1_daily.job.yml      # Daily medallion job (12 tasks)
+│   ├── youtube_search.app.yml      # Streamlit app + its resources (secret, SQL warehouse)
+│   └── medallion.schemas.yml       # bronze / silver / gold schemas (+ Gold grant for the app)
+├── src/
+│   ├── app/                        # Databricks App source (deployed as is)
+│   │   ├── app.py                  # Streamlit main page: search, save, comments
+│   │   ├── app.yaml                # App command + env (valueFrom → app resources)
+│   │   ├── database.py             # Lakebase Postgres connection + schema migration (init_db)
+│   │   ├── youtube_client.py       # YouTube Data API v3 client
+│   │   ├── gold_client.py          # Read-only access to Gold via a SQL warehouse
+│   │   ├── refresh_daily.py        # Daily re-read of saved videos / channels (empty-source guard); also job step 1
+│   │   ├── requirements.txt
+│   │   └── pages/                  # 2_saved_videos.py, 3_restaurant_ranking.py
+│   └── notebooks/                  # Pipeline notebooks (job tasks)
+│       ├── refresh/run_refresh     # Runs src/app/refresh_daily.py on serverless
+│       ├── bronze/ingest_raw       # Lakebase → <catalog>.bronze.*_raw (append-only)
+│       ├── stg/                    # Bronze → silver.stg_* (+ LLM restaurant extraction)
+│       ├── gold/                   # Kimball dims, facts, checks, restaurant dim, ranking
+│       └── landing/                # Old raw ingest (kept for reference, not in the job)
+└── scripts/test_api.py             # YouTube API exploration script
 ```
+
+## Deploy (Databricks Asset Bundle)
+
+Workspace `https://dbc-66b44822-7fe7.cloud.databricks.com`, Databricks CLI ≥ 0.270.
+
+| Target | Schemas | Job | Refresh step | Root path |
+| --- | --- | --- | --- | --- |
+| `dev` (default) | `prod.dev_bronze` / `prod.dev_silver` / `prod.dev_gold` | `[dev] Project 1 — …`, paused | dry run (writes nothing to Postgres) | `~/.bundle/project1_youtube_restaurants/dev` |
+| `prod` | `prod.bronze` / `prod.silver` / `prod.gold` | `Project 1 — …` (id 807264924625256), 01:00 Asia/Ho_Chi_Minh | writes | `~/.bundle/project1_youtube_restaurants/prod` |
+
+```bash
+databricks bundle validate --strict              # dev
+databricks bundle deploy                         # dev
+databricks bundle run project1_daily             # dev run
+databricks bundle plan -t prod                   # review before a prod deploy
+databricks bundle deploy -t prod
+```
+
+- Notebooks read the schema names from job parameters `bronze` / `silver` / `gold` (`catalog.schema`, default `prod.*` when a notebook is run by hand), so the same code runs in both targets.
+- Both targets read the same Lakebase Postgres (`lakebase_pg`); dev only reads it (refresh is a dry run).
+- The prod job, app and schemas existed before the bundle and are bound to it (`bundle deployment bind`), so they keep their ids and history. The prod schemas have `prevent_destroy`.
+- Turning the daily schedule on: set `schedule_pause_status: UNPAUSED` for `prod` in `databricks.yml` once the secret `youtube/api_key` exists and a dry run passed, then deploy.
 
 ## App setup
 
 ### 1. Environment variables
 
-Local: `.env` (see `.env.example`). Databricks App: `app.yaml` / app resources.
+Local: `.env` at the repo root (see `.env.example`). Databricks App: `src/app/app.yaml` + the app resources in `resources/youtube_search.app.yml`.
 
 | Variable | Used by | Note |
 | --- | --- | --- |
@@ -50,9 +78,12 @@ The ranking page needs **CAN USE** on the SQL warehouse and **SELECT** on `prod.
 ### 2. Install & run
 
 ```bash
+cd src/app
 pip install -r requirements.txt
 streamlit run app.py
 ```
+
+Deployed: `databricks bundle deploy -t prod`, then `databricks bundle run youtube_search -t prod` to deploy and start the app.
 
 `init_db()` creates / migrates the Postgres tables on start (`ADD COLUMN IF NOT EXISTS`, so it is safe to rerun).
 
@@ -89,11 +120,11 @@ YouTube API ─► app (search / save) ─┐
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
 | Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city) |
 
-`Analytic/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
+`src/notebooks/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
 ### Daily job
 
-Job **"Project 1 — YouTube restaurants medallion (daily)"** (spec: `Analytic/jobs/project1_daily_job.json`), serverless, 01:00 `Asia/Ho_Chi_Minh`, emails on failure. Each step depends on the previous one, so a failure stops everything after it:
+Job **"Project 1 — YouTube restaurants medallion (daily)"** (defined in `resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, emails on failure. Each step depends on the previous one, so a failure stops everything after it:
 
 ```
 refresh_daily → bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results
@@ -104,11 +135,12 @@ Guards: `refresh_daily.py` reads everything first and stops **before writing** i
 
 The refresh step needs secrets in scope `youtube`: `pg_password` (Postgres role `admin`) and `api_key` (YouTube Data API v3). Job parameter `dry_run=true` calls the API and runs the guard without writing.
 
-To rebuild the job spec after changing the task list: `python Analytic/jobs/make_job.py UNPAUSED > Analytic/jobs/project1_daily_job.json`, then `databricks jobs reset`.
+To change the task list, edit `resources/project1_daily.job.yml`, then `bundle validate` / `plan` / `deploy`.
 
 ### Run the refresh locally
 
 ```bash
+cd src/app
 python refresh_daily.py --dry-run   # call the API, run the guard, write nothing
 python refresh_daily.py             # write to Postgres
 ```

@@ -1,0 +1,19 @@
+# Streamlit app (src/app). Env vars live in src/app/app.yaml; the valueFrom names there refer to
+# the resources below.
+resources:
+  apps:
+    youtube_search:
+      name: ${var.app_name}
+      description: YouTube restaurant search + Gold restaurant ranking (Project 1)
+      source_code_path: ../src/app
+      resources:
+        # Postgres password; READ on the scope also lets youtube_client read youtube/api_key.
+        - name: pg-password
+          secret:
+            scope: youtube
+            key: pg_password
+            permission: READ
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
