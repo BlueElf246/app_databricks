@@ -31,6 +31,15 @@ variables:
   dry_run:
     description: "true = the refresh step calls the YouTube API and runs the guard but writes nothing to Postgres"
     default: "true"
+  search_keyword:
+    description: Keyword the daily search task sends to the YouTube search API
+    default: "quán ăn Hồ Chí Minh"
+  search_max_results:
+    description: "Number of results the daily search task requests (1-50)"
+    default: "10"
+  search_order:
+    description: "Sort order for the daily search task: relevance, date, or viewCount"
+    default: relevance
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule
     default: PAUSED

@@ -28,14 +28,31 @@ resources:
           default: ${var.catalog}.${resources.schemas.gold.name}
         - name: dry_run
           default: ${var.dry_run}
+        - name: keyword
+          default: ${var.search_keyword}
+        - name: max_results
+          default: ${var.search_max_results}
+        - name: search_order
+          default: ${var.search_order}
       tasks:
         - task_key: refresh_daily
           notebook_task:
             notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
           timeout_seconds: 1800
 
+        - task_key: search_daily
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/run_search.ipynb
+            base_parameters:
+              keyword: ${var.search_keyword}
+              max_results: ${var.search_max_results}
+              order: ${var.search_order}
+          timeout_seconds: 1800
+
         - task_key: bronze_ingest
-          depends_on: [{task_key: refresh_daily}]
+          depends_on:
+            - task_key: refresh_daily
+            - task_key: search_daily
           notebook_task:
             notebook_path: ../src/notebooks/bronze/ingest_raw.ipynb
           timeout_seconds: 1800
