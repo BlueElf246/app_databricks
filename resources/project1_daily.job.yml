@@ -87,6 +87,13 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_mentions.ipynb
           timeout_seconds: 1800
 
+        # Google Places lookup of new restaurants (cached; at most 200 API calls per run)
+        - task_key: stg_restaurant_geocode
+          depends_on: [{task_key: stg_restaurant_mentions}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/restaurant_geocode.ipynb
+          timeout_seconds: 1800
+
         - task_key: gold_dims
           depends_on:
             - task_key: stg_channels
@@ -106,7 +113,7 @@ resources:
         - task_key: gold_restaurants
           depends_on:
             - task_key: gold_dims
-            - task_key: stg_restaurant_mentions
+            - task_key: stg_restaurant_geocode
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
