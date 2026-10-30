@@ -113,7 +113,8 @@ YouTube API ─► app (search / save) ─┐
 | Bronze | `videos_raw`, `channels_raw`, `comments_raw`, `search_results_raw` | 1 row per source row per read | Append, watermark on `COALESCE(updated_at, created_at)` (`fetched_at` for search results); new source columns are added automatically |
 | Silver | `stg_videos`, `stg_channels` | id × `snapshot_date` (Vietnam day) | MERGE on the grain (latest Bronze read wins) |
 | Silver | `stg_comments` / `stg_search_results` | `comment_id` / `id` | MERGE / insert-only MERGE |
-| Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description, only for new / changed videos (`stg_restaurant_extraction_log`) |
+| Silver | `stg_video_transcripts` | `video_id` | Gemini API reads the YouTube URL (free tier, ≤ 7 h video / day, videos ≤ 20 min); insert-only cache, `[không có lời nói]` when the video has no speech |
+| Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description + transcript, only for new / changed videos or when a transcript arrives (`stg_restaurant_extraction_log`) |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
 | Gold | `dim_restaurant` | one row per version | SCD 2 on address / location (name is type 1); dedup = same normalized name + district (no geocoder yet) |
@@ -130,7 +131,8 @@ Job **"Project 1 — YouTube restaurants medallion (daily)"** (defined in `resou
 
 ```
 refresh_daily → bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results
-  → stg_restaurant_mentions → gold_dims → gold_facts + gold_restaurants → gold_checks → gold_agg_ranking
+  → gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode
+  → gold_facts + gold_restaurants → gold_checks → gold_agg_ranking
 ```
 
 Guards: `refresh_daily.py` reads everything first and stops **before writing** if the API returns 0 rows or more than 20% zero counters; all writes are atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); every date key uses Vietnam time.

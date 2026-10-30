@@ -78,6 +78,13 @@ Add the API key. The CLI asks for the value, so it never appears in your shell h
 databricks secrets put-secret youtube api_key
 ```
 
+The transcript step reads `gemini/api_key` (Gemini API). Create that key in Google AI Studio in a GCP project **without billing**, so it stays on the free tier (over the limit the API returns 429 instead of charging):
+
+```bash
+databricks secrets create-scope gemini
+databricks secrets put-secret gemini api_key
+```
+
 The deployed app reads Gold through its service principal. The bundle already grants it `USE SCHEMA` and `SELECT` on `prod.gold`. It also needs `USE CATALOG` on `prod`, which you run once in a SQL editor:
 
 ```sql
@@ -144,7 +151,7 @@ Everything **except** the refresh step. Use this while the api_key secret is mis
 
 ```bash
 databricks bundle run project1_daily -t prod \
-  --only bronze_ingest,stg_channels,stg_videos,stg_comments,stg_search_results,stg_restaurant_mentions,gold_dims,gold_facts,gold_restaurants,gold_checks,gold_agg_ranking
+  --only bronze_ingest,stg_channels,stg_videos,stg_comments,stg_search_results,stg_restaurant_mentions,gold_dims,stg_video_transcripts,gold_facts,gold_restaurants,gold_checks,gold_agg_ranking
 ```
 
 Only the refresh, as a dry run in prod (API call + guard, nothing written):
