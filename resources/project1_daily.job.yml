@@ -81,8 +81,19 @@ resources:
             notebook_path: ../src/notebooks/stg/search_results.ipynb
           timeout_seconds: 1800
 
+        # Gemini transcript of new videos (free tier: at most 7 h of video per day, max_videos calls per run)
+        - task_key: stg_video_transcripts
+          depends_on: [{task_key: gold_dims}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/video_transcripts.ipynb
+            base_parameters:
+              max_videos: "20"
+          timeout_seconds: 3600
+
         - task_key: stg_restaurant_mentions
-          depends_on: [{task_key: stg_videos}]
+          depends_on:
+            - task_key: stg_videos
+            - task_key: stg_video_transcripts
           notebook_task:
             notebook_path: ../src/notebooks/stg/restaurant_mentions.ipynb
           timeout_seconds: 1800
