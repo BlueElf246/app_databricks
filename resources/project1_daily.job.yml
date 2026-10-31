@@ -5,7 +5,7 @@ resources:
     project1_daily:
       name: ${var.job_name_prefix}Project 1 — YouTube restaurants medallion (daily)
       description: >-
-        refresh → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_ranking.
+        auto_search → refresh → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_ranking.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
@@ -28,8 +28,22 @@ resources:
           default: ${var.catalog}.${resources.schemas.gold.name}
         - name: dry_run
           default: ${var.dry_run}
+        - name: auto_search_count
+          default: ${var.auto_search_count}
+        - name: auto_search_max_results
+          default: ${var.auto_search_max_results}
       tasks:
+        # The system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
+        # never fails, so refresh always runs. New videos flow through the rest of this run.
+        - task_key: auto_search
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/auto_search.ipynb
+            base_parameters:
+              databricks_run_id: "{{job.run_id}}"
+          timeout_seconds: 1800
+
         - task_key: refresh_daily
+          depends_on: [{task_key: auto_search}]
           notebook_task:
             notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
           timeout_seconds: 1800

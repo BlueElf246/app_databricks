@@ -213,6 +213,35 @@ def init_db() -> None:
                 "CREATE INDEX IF NOT EXISTS idx_search_runs_mode_started "
                 "ON search_runs (mode, started_at DESC)"
             )
+            # new_results = videos / places not in the database before this run
+            _try_execute(cur, "ALTER TABLE search_runs ADD COLUMN IF NOT EXISTS new_results INT")
+
+            # Keywords the system searches by itself (auto_search) plus every keyword searched by
+            # hand; one row per normalized keyword, with its schedule and how much it found.
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS search_keywords (
+                    keyword_normalized  TEXT NOT NULL,
+                    keyword             TEXT NOT NULL,
+                    mode                TEXT NOT NULL DEFAULT 'youtube',
+                    origin              TEXT NOT NULL,
+                    dish                TEXT,
+                    cuisine             TEXT,
+                    district            TEXT,
+                    priority            NUMERIC NOT NULL DEFAULT 0,
+                    active              BOOLEAN NOT NULL DEFAULT TRUE,
+                    cooldown_days       INT NOT NULL DEFAULT 7,
+                    last_searched_at    TIMESTAMPTZ,
+                    next_due_at         TIMESTAMPTZ,
+                    runs                INT NOT NULL DEFAULT 0,
+                    last_new_videos     INT,
+                    total_new_videos    INT NOT NULL DEFAULT 0,
+                    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    PRIMARY KEY (keyword_normalized, mode)
+                )
+                """
+            )
 
             # Google Places found by Text Search: one row per place, latest values (UPSERT).
             cur.execute(
@@ -467,9 +496,9 @@ def record_search_run(run: dict[str, Any]) -> None:
                 """
                 INSERT INTO search_runs (
                     search_run_id, mode, keyword, params, source, api_calls,
-                    result_count, status, error, databricks_run_id, started_at
+                    result_count, new_results, status, error, databricks_run_id, started_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     run["search_run_id"],
@@ -479,6 +508,7 @@ def record_search_run(run: dict[str, Any]) -> None:
                     run.get("source"),
                     run.get("api_calls", 0),
                     run.get("result_count", 0),
+                    run.get("new_results"),
                     run["status"],
                     run.get("error"),
                     run.get("databricks_run_id"),
@@ -486,6 +516,21 @@ def record_search_run(run: dict[str, Any]) -> None:
                 ),
             )
             conn.commit()
+
+
+def existing_ids(table: str, column: str, ids: list[str]) -> set[str]:
+    """The ids that are already stored (to count what a search found new)."""
+    if not ids:
+        return set()
+    assert (table, column) in {("videos", "video_id"), ("places", "place_id")}
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            try:
+                cur.execute(f"SELECT {column} FROM {table} WHERE {column} = ANY(%s)", (ids,))
+            except psycopg.errors.UndefinedTable:
+                return set()
+            return {row[0] for row in cur.fetchall()}
 
 
 def places_calls_this_month() -> int:

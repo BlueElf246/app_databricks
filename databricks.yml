@@ -40,6 +40,12 @@ variables:
   search_order:
     description: "Default YouTube sort order of the search job: relevance, date, or viewCount"
     default: relevance
+  auto_search_count:
+    description: "Keywords the daily auto_search task searches on YouTube (100 units each; free quota 10,000 / day)"
+    default: "20"
+  auto_search_max_results:
+    description: Results per auto_search keyword (1-50)
+    default: "25"
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule
     default: PAUSED
@@ -50,6 +56,9 @@ variables:
 targets:
   dev:
     default: true
+    variables:
+      # Daily run on (datle 31/10: auto search runs every day on dev)
+      schedule_pause_status: UNPAUSED
     workspace:
       host: https://dbc-66b44822-7fe7.cloud.databricks.com
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
