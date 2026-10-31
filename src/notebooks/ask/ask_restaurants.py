@@ -53,6 +53,11 @@ limit = max(1, min(int(arg["limit"] or 10), 30))
 
 # COMMAND ----------
 
+# Columns added later (7-day trending) may not be deployed yet: fall back to NULL.
+cols = set(spark.table(f"{GOLD}.agg_restaurant_ranking").columns)
+def col(name, cast="BIGINT"):
+    return f"r.{name}" if name in cols else f"CAST(NULL AS {cast})"
+
 # Same district normalization as the dashboard's "restaurants" dataset (keep in sync).
 sql = f"""
 WITH r AS (
@@ -91,7 +96,7 @@ picked AS (
                           COALESCE(' – ' || CAST(round(r.price_max_vnd / 1000) AS INT) || 'k', '+')) END AS price_range,
          r.google_rating, r.google_rating_count, r.legit_score, r.legit_label,
          round(100 * r.ranking_score, 1) AS hot_score,
-         r.credited_views, r.credited_views_7d AS views_7d, r.trending_rank_in_city,
+         r.credited_views, {col('credited_views_7d')} AS views_7d, {col('trending_rank_in_city', 'INT')} AS trending_rank_in_city,
          r.channel_count, r.video_count,
          COALESCE(r.google_maps_uri, 'https://www.google.com/maps/search/?api=1&query='
                   || url_encode(concat_ws(' ', r.restaurant_name, r.address))) AS maps_url,
