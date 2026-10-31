@@ -134,13 +134,22 @@ def _places(query: str, max_results: int, location: str | None, included_type: s
     if budget <= 0:
         raise QuotaReached(f"Places monthly cap reached ({used}/{PLACES_MONTHLY_CALL_LIMIT})")
 
-    raw, calls = search_places(
-        query,
-        max_results=max_results,
-        location_bias=parse_location(location),
-        included_type=included_type or None,
-        max_calls=budget,
-    )
+    from places_client import PlacesClientError
+
+    try:
+        raw, calls = search_places(
+            query,
+            max_results=max_results,
+            location_bias=parse_location(location),
+            included_type=included_type or None,
+            max_calls=budget,
+        )
+    except PlacesClientError as error:
+        # 429 RESOURCE_EXHAUSTED = the GCP project's own "SearchTextRequest per day" quota (shared with
+        # stg_restaurant_geocode): stop like the monthly cap; the keyword stays due for tomorrow
+        if error.status_code == 429:
+            raise QuotaReached(f"Places daily quota of the GCP project reached (429): {str(error.detail)[:300]}") from error
+        raise
     run["api_calls"] = calls
     rows = [to_row(p) for p in raw]
     run["result_count"] = len(rows)
@@ -268,7 +277,7 @@ def run_auto(
         print(f"plan: {plan(restaurants or [])}")
     picked = due_keywords(limit)
     print(f"auto_search: {len(picked)} due YouTube keyword(s) picked (limit {limit})")
-    done, new_videos, errors_in_row, stopped = [], 0, 0, None
+    done, new_videos, errors_in_row, stopped, errors = [], 0, 0, None, []
     for kw in picked:
         repeat = bool(kw["runs"]) and kw["last_searched_at"] is not None
         try:
@@ -293,16 +302,18 @@ def run_auto(
                 print("⏸️ YouTube quota used up: stop, the rest runs tomorrow")
                 break
             errors_in_row += 1
+            errors.append({"keyword": kw["keyword"], "error": f"YouTube {error.status_code}: {str(error.detail)[:500]}"})
             print(f"⚠️ {kw['keyword']}: {error.detail}")
         except Exception as error:  # noqa: BLE001 - one bad keyword must not stop the others
             errors_in_row += 1
-            print(f"⚠️ {kw['keyword']}: {error}")
+            errors.append({"keyword": kw["keyword"], "error": f"{type(error).__name__}: {str(error)[:500]}"})
+            print(f"⚠️ {kw['keyword']}: {type(error).__name__}: {error}")
         if errors_in_row >= 3:
             stopped = "3 errors in a row"
             break
     print(f"auto_search YouTube done: {len(done)} search(es), {new_videos} new video(s)" + (f", stopped: {stopped}" if stopped else ""))
     places = run_auto_places(places_limit, dry_run=dry_run, databricks_run_id=databricks_run_id)
-    return {"searches": len(done), "new_videos": new_videos, "stopped": stopped, "keywords": done, "places": places}
+    return {"searches": len(done), "new_videos": new_videos, "stopped": stopped, "keywords": done, "errors": errors, "places": places}
 
 
 def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | None = None) -> dict[str, Any]:
@@ -317,7 +328,7 @@ def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | 
     if budget <= 0:
         return {"searches": 0, "new_places": 0, "stopped": "auto monthly cap", "keywords": []}
     picked = due_keywords(budget, mode="places", verify_share=0)
-    done, new_places, errors_in_row, stopped = [], 0, 0, None
+    done, new_places, errors_in_row, stopped, errors = [], 0, 0, None, []
     for kw in picked:
         try:
             counts = run_search(
@@ -336,20 +347,21 @@ def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | 
             break
         except Exception as error:  # noqa: BLE001 - one bad keyword must not stop the others
             errors_in_row += 1
-            print(f"⚠️ {kw['keyword']}: {error}")
+            errors.append({"keyword": kw["keyword"], "error": f"{type(error).__name__}: {str(error)[:500]}"})
+            print(f"⚠️ {kw['keyword']}: {type(error).__name__}: {error}")
             if errors_in_row >= 3:
                 stopped = "3 errors in a row"
                 break
             continue
         if counts.get("status") == "quota":
-            stopped = "places monthly cap"
+            stopped = "places quota (monthly cap or GCP daily quota)"
             break
         errors_in_row = 0
         new_places += counts.get("new_places", 0)
         done.append({"keyword": kw["keyword"], "mode": "places", "origin": kw["origin"],
                      "places": counts.get("places", 0), "new_places": counts.get("new_places", 0)})
     print(f"auto_search Places done: {len(done)} search(es), {new_places} new place(s)" + (f", stopped: {stopped}" if stopped else ""))
-    return {"searches": len(done), "new_places": new_places, "stopped": stopped, "keywords": done}
+    return {"searches": len(done), "new_places": new_places, "stopped": stopped, "keywords": done, "errors": errors}
 
 
 CHANNEL_SOURCE = "search_channel"  # new uploads of followed food channels (auto_search source A)
