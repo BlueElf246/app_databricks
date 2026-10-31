@@ -5,7 +5,7 @@
       "displayName": "Quán (agg_restaurant_ranking)",
       "queryLines": [
         "SELECT\n",
-        "  restaurant_id,\n",
+        "  a.restaurant_id,\n",
         "  restaurant_name,\n",
         "  COALESCE(google_maps_uri,\n",
         "           'https://www.google.com/maps/search/?api=1&query=' || url_encode(concat_ws(' ', restaurant_name, address))) AS maps_url,\n",
@@ -36,8 +36,23 @@
         "  city,\n",
         "  latitude,\n",
         "  longitude,\n",
-        "  photo_name\n",
-        "FROM agg_restaurant_ranking\n",
+        "  a.photo_name,\n",
+        "  t.thumbnail_url\n",
+        "FROM agg_restaurant_ranking a\n",
+        "-- Google returns no photos for this key, so show the thumbnail of the most viewed review video\n",
+        "LEFT JOIN (\n",
+        "  SELECT restaurant_id, max_by(thumbnail_url, view_count) AS thumbnail_url\n",
+        "  FROM (\n",
+        "    SELECT r.restaurant_id, v.thumbnail_url, s.view_count\n",
+        "    FROM fact_video_restaurant_mention m\n",
+        "    JOIN dim_restaurant r ON r.restaurant_key = m.restaurant_key\n",
+        "    JOIN dim_video v      ON v.video_key = m.video_key\n",
+        "    LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count\n",
+        "               FROM fact_video_daily_snapshot GROUP BY video_key) s ON s.video_key = m.video_key\n",
+        "    WHERE m.restaurant_key <> -1\n",
+        "  )\n",
+        "  GROUP BY restaurant_id\n",
+        ") t ON t.restaurant_id = a.restaurant_id\n",
         "ORDER BY legit_score DESC, credited_views DESC"
       ]
     },
@@ -566,6 +581,10 @@
                   "datasetName": "restaurants",
                   "fields": [
                     {
+                      "name": "thumbnail_url",
+                      "expression": "`thumbnail_url`"
+                    },
+                    {
                       "name": "restaurant_name",
                       "expression": "`restaurant_name`"
                     },
@@ -635,6 +654,33 @@
               "widgetType": "table",
               "encodings": {
                 "columns": [
+                  {
+                    "fieldName": "thumbnail_url",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "96",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "image",
+                    "visible": true,
+                    "order": -1,
+                    "title": "",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "thumbnail_url"
+                  },
                   {
                     "fieldName": "restaurant_name",
                     "booleanValues": [
