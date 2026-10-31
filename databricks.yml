@@ -62,6 +62,11 @@ targets:
               level: CAN_MANAGE_RUN
             - service_principal_name: b5dc6edb-27c3-4bbe-9f47-c4e589402af0  # app yt-search-<user> (Search ingest page)
               level: CAN_MANAGE_RUN
+        project1_daily:
+          # claude-search runs the end-to-end pipeline from the Claude chat (dev only)
+          permissions:
+            - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
+              level: CAN_MANAGE_RUN
 
   prod:
     mode: production
