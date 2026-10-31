@@ -94,6 +94,14 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_geocode.ipynb
           timeout_seconds: 1800
 
+        # Google Place Details (rating, reviews, price range, cuisine type, photo) of matched places,
+        # each place re-read every 30 days; capped under the free Enterprise calls per month
+        - task_key: stg_restaurant_place_details
+          depends_on: [{task_key: stg_restaurant_geocode}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/restaurant_place_details.ipynb
+          timeout_seconds: 1800
+
         - task_key: gold_dims
           depends_on:
             - task_key: stg_channels
@@ -113,7 +121,7 @@ resources:
         - task_key: gold_restaurants
           depends_on:
             - task_key: gold_dims
-            - task_key: stg_restaurant_geocode
+            - task_key: stg_restaurant_place_details
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
