@@ -41,7 +41,10 @@ from database import (
 MODES = ("youtube", "places")
 SOURCE = {"youtube": "search_youtube", "places": "search_places"}
 AUTO_SOURCE = "search_auto"  # keywords picked by the system (auto_search task of the daily job)
-PLACES_MONTHLY_CALL_LIMIT = 800  # under the 1,000 free Text Search Enterprise calls per month
+PLACES_MONTHLY_CALL_LIMIT = 800  # under the 1,000 free Text Search Enterprise calls per month (all sources)
+AUTO_PLACES_PER_DAY = 15         # auto_search Places keywords per day (1 page = 20 places = 1 call each)
+PLACES_PAGE_RESULTS = 20         # one Text Search page
+AUTO_PLACES_MONTHLY_LIMIT = 450  # auto_search share of the 800; manual searches keep the rest (~350)
 DEFAULT_LOCATION = "10.7769,106.7009,20000"  # Ho Chi Minh City centre, 20 km bias
 
 
@@ -246,12 +249,16 @@ def run_auto(
     restaurants: list[dict[str, Any]] | None = None,
     dry_run: bool = False,
     databricks_run_id: int | None = None,
+    places_limit: int = AUTO_PLACES_PER_DAY,
 ) -> dict[str, Any]:
-    """auto_search: plan the keywords, then search the `limit` due YouTube keywords with the highest priority.
+    """auto_search: plan the keywords, then search the due keywords with the highest priority.
 
-    First run of a keyword: order=relevance (best videos). Later runs: order=date and
-    publishedAfter = day of the previous search, so only new uploads cost quota.
+    YouTube: `limit` keywords. First run of a keyword: order=relevance (best videos). Later runs:
+    order=date and publishedAfter = day of the previous search, so only new uploads cost quota.
     A YouTube quota error stops the loop without failing; 3 errors in a row stop it too.
+    Google Maps (places): `places_limit` keywords, 1 page (20 places, 1 call) each, while the
+    auto_search calls this month stay under AUTO_PLACES_MONTHLY_LIMIT (and all calls under
+    PLACES_MONTHLY_CALL_LIMIT, checked in _places).
     """
     from keywords import due_keywords, plan
     from youtube_client import YouTubeClientError
@@ -260,7 +267,7 @@ def run_auto(
         init_db()
         print(f"plan: {plan(restaurants or [])}")
     picked = due_keywords(limit)
-    print(f"auto_search: {len(picked)} due keyword(s) picked (limit {limit})")
+    print(f"auto_search: {len(picked)} due YouTube keyword(s) picked (limit {limit})")
     done, new_videos, errors_in_row, stopped = [], 0, 0, None
     for kw in picked:
         repeat = bool(kw["runs"]) and kw["last_searched_at"] is not None
@@ -278,8 +285,8 @@ def run_auto(
             )
             errors_in_row = 0
             new_videos += counts.get("new_videos", 0)
-            done.append({"keyword": kw["keyword"], "origin": kw["origin"], "videos": counts.get("videos", 0),
-                         "new_videos": counts.get("new_videos", 0)})
+            done.append({"keyword": kw["keyword"], "mode": "youtube", "origin": kw["origin"],
+                         "videos": counts.get("videos", 0), "new_videos": counts.get("new_videos", 0)})
         except YouTubeClientError as error:
             if error.status_code == 403 and "quota" in str(error.detail).lower():
                 stopped = "youtube quota"
@@ -293,8 +300,56 @@ def run_auto(
         if errors_in_row >= 3:
             stopped = "3 errors in a row"
             break
-    print(f"auto_search done: {len(done)} search(es), {new_videos} new video(s)" + (f", stopped: {stopped}" if stopped else ""))
-    return {"searches": len(done), "new_videos": new_videos, "stopped": stopped, "keywords": done}
+    print(f"auto_search YouTube done: {len(done)} search(es), {new_videos} new video(s)" + (f", stopped: {stopped}" if stopped else ""))
+    places = run_auto_places(places_limit, dry_run=dry_run, databricks_run_id=databricks_run_id)
+    return {"searches": len(done), "new_videos": new_videos, "stopped": stopped, "keywords": done, "places": places}
+
+
+def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | None = None) -> dict[str, Any]:
+    """auto_search on Google Maps: due places keywords, 1 page each, within the auto monthly share."""
+    from keywords import due_keywords
+
+    if limit <= 0:
+        return {"searches": 0, "new_places": 0, "stopped": "disabled", "keywords": []}
+    used = places_calls_this_month(source=AUTO_SOURCE)
+    budget = min(limit, AUTO_PLACES_MONTHLY_LIMIT - used)
+    print(f"auto_search Places: {used}/{AUTO_PLACES_MONTHLY_LIMIT} auto calls this month · today up to {max(budget, 0)}")
+    if budget <= 0:
+        return {"searches": 0, "new_places": 0, "stopped": "auto monthly cap", "keywords": []}
+    picked = due_keywords(budget, mode="places", verify_share=0)
+    done, new_places, errors_in_row, stopped = [], 0, 0, None
+    for kw in picked:
+        try:
+            counts = run_search(
+                kw["keyword"],
+                mode="places",
+                max_results=PLACES_PAGE_RESULTS,
+                location=DEFAULT_LOCATION,
+                dry_run=dry_run,
+                databricks_run_id=databricks_run_id,
+                source=AUTO_SOURCE,
+                keyword_origin=kw["origin"],
+            )
+        except QuotaReached as error:
+            stopped = str(error)
+            print(f"⏸️ {error}")
+            break
+        except Exception as error:  # noqa: BLE001 - one bad keyword must not stop the others
+            errors_in_row += 1
+            print(f"⚠️ {kw['keyword']}: {error}")
+            if errors_in_row >= 3:
+                stopped = "3 errors in a row"
+                break
+            continue
+        if counts.get("status") == "quota":
+            stopped = "places monthly cap"
+            break
+        errors_in_row = 0
+        new_places += counts.get("new_places", 0)
+        done.append({"keyword": kw["keyword"], "mode": "places", "origin": kw["origin"],
+                     "places": counts.get("places", 0), "new_places": counts.get("new_places", 0)})
+    print(f"auto_search Places done: {len(done)} search(es), {new_places} new place(s)" + (f", stopped: {stopped}" if stopped else ""))
+    return {"searches": len(done), "new_places": new_places, "stopped": stopped, "keywords": done}
 
 
 CHANNEL_SOURCE = "search_channel"  # new uploads of followed food channels (auto_search source A)

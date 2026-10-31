@@ -566,8 +566,8 @@ def existing_ids(table: str, column: str, ids: list[str]) -> set[str]:
             return {row[0] for row in cur.fetchall()}
 
 
-def places_calls_this_month() -> int:
-    """Places Text Search calls recorded this Vietnam calendar month (all runs)."""
+def places_calls_this_month(source: str | None = None) -> int:
+    """Places Text Search calls recorded this Vietnam calendar month (all runs, or one source)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
@@ -575,10 +575,11 @@ def places_calls_this_month() -> int:
                 cur.execute(
                     """
                 SELECT COALESCE(SUM(api_calls), 0) FROM search_runs
-                WHERE mode = 'places'
+                WHERE mode = 'places' AND (%s::text IS NULL OR source = %s)
                   AND date_trunc('month', started_at AT TIME ZONE 'Asia/Ho_Chi_Minh')
                     = date_trunc('month', NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')
-                """
+                """,
+                    (source, source),
                 )
             except psycopg.errors.UndefinedTable:
                 return 0  # no run recorded yet (table is created by the first real run)

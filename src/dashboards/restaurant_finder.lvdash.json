@@ -20,6 +20,7 @@
         "  google_rating_count,\n",
         "  legit_score,\n",
         "  legit_label,\n",
+        "  data_source,\n",
         "  CASE WHEN legit_label = 'Legit' THEN 1 ELSE 0 END AS is_legit,\n",
         "  legit_rank_in_city,\n",
         "  round(100 * ranking_score, 1) AS hot_score,\n",
@@ -192,7 +193,7 @@
             "multilineTextboxSpec": {
               "lines": [
                 "## Tìm quán ăn ngon\n",
-                "Sắp xếp theo **legit score** (0–100: rating Google đã hiệu chỉnh theo số đánh giá, số đánh giá, số kênh YouTube khác nhau, tỷ lệ like, view 30 ngày). **Đang hot** = độ hot trên YouTube (view 30 ngày + like). Quán Google chưa nhận ra hiện khẩu vị / giá là *Chưa rõ*."
+                "Sắp xếp theo **legit score** (0–100: rating Google đã hiệu chỉnh theo số đánh giá, số đánh giá, số kênh YouTube khác nhau, tỷ lệ like, view 30 ngày). **Đang hot** = độ hot trên YouTube (view 30 ngày + like). Quán Google chưa nhận ra hiện khẩu vị / giá là *Chưa rõ*. Quán **Chỉ Google** = tìm thấy trên Google Maps (auto search) nhưng chưa có video review: legit score chỉ tính phần Google."
               ]
             }
           },
@@ -528,6 +529,49 @@
         },
         {
           "widget": {
+            "name": "f_source",
+            "queries": [
+              {
+                "name": "f_source_q",
+                "query": {
+                  "datasetName": "restaurants",
+                  "fields": [
+                    {
+                      "name": "data_source",
+                      "expression": "`data_source`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "data_source",
+                    "displayName": "Nguồn dữ liệu",
+                    "queryName": "f_source_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Nguồn (có review YouTube?)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
             "name": "f_name",
             "queries": [
               {
@@ -640,7 +684,7 @@
           },
           "position": {
             "x": 0,
-            "y": 3,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -680,7 +724,7 @@
           },
           "position": {
             "x": 2,
-            "y": 3,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -720,7 +764,7 @@
           },
           "position": {
             "x": 4,
-            "y": 3,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -802,7 +846,7 @@
           },
           "position": {
             "x": 0,
-            "y": 5,
+            "y": 6,
             "width": 6,
             "height": 8
           }
@@ -1187,7 +1231,7 @@
           },
           "position": {
             "x": 0,
-            "y": 13,
+            "y": 14,
             "width": 4,
             "height": 8
           }
@@ -1252,7 +1296,7 @@
           },
           "position": {
             "x": 4,
-            "y": 13,
+            "y": 14,
             "width": 2,
             "height": 8
           }
@@ -1281,6 +1325,10 @@
                     {
                       "name": "legit_label",
                       "expression": "`legit_label`"
+                    },
+                    {
+                      "name": "data_source",
+                      "expression": "`data_source`"
                     },
                     {
                       "name": "cuisine",
@@ -1449,7 +1497,7 @@
                     "displayName": "legit_label"
                   },
                   {
-                    "fieldName": "cuisine",
+                    "fieldName": "data_source",
                     "booleanValues": [
                       "false",
                       "true"
@@ -1466,6 +1514,33 @@
                     "displayAs": "string",
                     "visible": true,
                     "order": 3,
+                    "title": "Nguồn",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "Nguồn"
+                  },
+                  {
+                    "fieldName": "cuisine",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 4,
                     "title": "Khẩu vị",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1492,7 +1567,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 4,
+                    "order": 5,
                     "title": "Loại (Google)",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1519,7 +1594,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 5,
+                    "order": 6,
                     "title": "Giá / người",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1546,7 +1621,7 @@
                     "type": "float",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 6,
+                    "order": 7,
                     "title": "★ Google",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1573,7 +1648,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 7,
+                    "order": 8,
                     "title": "Số đánh giá",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1600,7 +1675,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 8,
+                    "order": 9,
                     "title": "Số kênh",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1627,7 +1702,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 9,
+                    "order": 10,
                     "title": "Số video",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1654,7 +1729,7 @@
                     "type": "float",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 10,
+                    "order": 11,
                     "title": "Like %",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1681,7 +1756,7 @@
                     "type": "float",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 11,
+                    "order": 12,
                     "title": "Đang hot",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -1708,7 +1783,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 12,
+                    "order": 13,
                     "title": "Quận",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1735,7 +1810,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 13,
+                    "order": 14,
                     "title": "Địa chỉ",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1762,7 +1837,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": false,
-                    "order": 14,
+                    "order": 15,
                     "title": "maps_url",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -1788,7 +1863,7 @@
           },
           "position": {
             "x": 0,
-            "y": 21,
+            "y": 22,
             "width": 6,
             "height": 12
           }

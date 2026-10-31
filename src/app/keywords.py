@@ -4,9 +4,12 @@ Table public.search_keywords holds one row per (normalized keyword, mode) with i
 - origin grid: dish x district of Ho Chi Minh City ("quán phở Quận 3"), seeded once;
 - origin verify: "<restaurant> review" for well-rated restaurants that only one channel reviewed;
 - origin manual: every keyword searched by hand (chat, app, Jobs UI), so it is re-run too.
+The grid exists twice: mode youtube (videos) and mode places (Google Maps Text Search, 1 page =
+20 places = 1 call; added 2026-10-31). Restaurants that only Google knows become verify keywords
+"<restaurant> review" on YouTube.
 priority is recomputed every day by plan(); auto_search picks the due keywords with the
-highest priority. After a run the keyword rests cooldown_days (7, doubled up to 60 while a
-run finds no new video).
+highest priority. After a run the keyword rests cooldown_days (youtube 7, doubled up to 60 while a
+run finds no new video; places 30 -> 90, Google Maps results change slowly).
 """
 import re
 import unicodedata
@@ -15,8 +18,9 @@ from typing import Any, Iterable
 
 from database import APP_SCHEMA, get_connection
 
-COOLDOWN_MIN, COOLDOWN_MAX = 7, 60
+COOLDOWN_DAYS = {"youtube": (7, 60), "places": (30, 90)}  # (after a run with new results, max)
 VERIFY_MIN_RATING, VERIFY_MIN_REVIEWS = 4.3, 100
+VERIFY_MIN_REVIEWS_GOOGLE_ONLY = 200  # restaurants found only on Google Maps (no YouTube review yet)
 
 # (dish as typed in the keyword, cuisine group used by the dashboard / gold.dim_restaurant)
 DISHES: list[tuple[str, str]] = [
@@ -64,6 +68,7 @@ def _execute_many(sql: str, rows: list[tuple]) -> None:
 
 def upsert_candidates(candidates: Iterable[dict[str, Any]]) -> None:
     """Insert new keywords; existing ones keep their schedule and history."""
+    candidates = list(candidates)
     rows = [
         (
             normalize_keyword(c["keyword"]), c["keyword"], c.get("mode", "youtube"), c["origin"],
@@ -73,32 +78,41 @@ def upsert_candidates(candidates: Iterable[dict[str, Any]]) -> None:
     ]
     _execute_many(
         """
-        INSERT INTO search_keywords (keyword_normalized, keyword, mode, origin, dish, cuisine, district)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO search_keywords (keyword_normalized, keyword, mode, origin, dish, cuisine, district, cooldown_days)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (keyword_normalized, mode) DO NOTHING
         """,
-        rows,
+        [row + (COOLDOWN_DAYS.get(c.get("mode", "youtube"), COOLDOWN_DAYS["youtube"])[0],)
+         for row, c in zip(rows, candidates)],
     )
 
 
-def grid_candidates() -> list[dict[str, Any]]:
+def grid_candidates(modes: Iterable[str] = ("youtube", "places")) -> list[dict[str, Any]]:
     return [
-        {"keyword": f"quán {dish} {district}", "origin": "grid", "dish": dish, "cuisine": cuisine, "district": district}
+        {"keyword": f"quán {dish} {district}", "mode": mode, "origin": "grid", "dish": dish, "cuisine": cuisine,
+         "district": district}
+        for mode in modes
         for dish, cuisine in DISHES
         for district in DISTRICTS
     ]
 
 
 def verify_candidates(restaurants: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Well-rated restaurants that only one YouTube channel talked about: look for more reviews."""
+    """Well-rated restaurants with at most one YouTube channel: look for (more) reviews on YouTube.
+
+    Restaurants only Google Maps knows (has_youtube_review false) need more Google reviews (200).
+    """
+    def min_reviews(r: dict[str, Any]) -> int:
+        return VERIFY_MIN_REVIEWS_GOOGLE_ONLY if r.get("has_youtube_review") is False else VERIFY_MIN_REVIEWS
+
     return [
-        {"keyword": f"{r['restaurant_name']} review", "origin": "verify", "district": r.get("district"),
-         "cuisine": r.get("cuisine")}
+        {"keyword": f"{r['restaurant_name']} review", "mode": "youtube", "origin": "verify",
+         "district": r.get("district"), "cuisine": r.get("cuisine")}
         for r in restaurants
         if r.get("restaurant_name")
         and (r.get("channel_count") or 0) <= 1
         and (r.get("google_rating") or 0) >= VERIFY_MIN_RATING
-        and (r.get("google_rating_count") or 0) >= VERIFY_MIN_REVIEWS
+        and (r.get("google_rating_count") or 0) >= min_reviews(r)
     ]
 
 
@@ -123,7 +137,9 @@ def plan(restaurants: list[dict[str, Any]]) -> dict[str, int]:
     upsert_candidates(grid_candidates())
     verify = verify_candidates(restaurants)
     upsert_candidates(verify)
-    gaps = gap_scores(restaurants)
+    # YouTube keywords fill cells without YouTube reviews; Google Maps keywords fill cells without any restaurant
+    gaps = {"youtube": gap_scores([r for r in restaurants if r.get("has_youtube_review") is not False]),
+            "places": gap_scores(restaurants)}
 
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -134,7 +150,7 @@ def plan(restaurants: list[dict[str, Any]]) -> dict[str, int]:
             for kw, mode, origin, district, cuisine, runs, last_new in rows:
                 score = 0.0
                 if origin == "grid":
-                    score += gaps.get((district_norm(district), cuisine), 0.5)
+                    score += gaps.get(mode, gaps["youtube"]).get((district_norm(district), cuisine), 0.5)
                 elif origin == "verify":
                     score += 0.8
                 else:  # manual
@@ -205,13 +221,14 @@ def record_keyword_run(keyword: str, mode: str, new_results: int | None, ok: boo
             cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
             cur.execute(
                 """
-                INSERT INTO search_keywords (keyword_normalized, keyword, mode, origin)
-                VALUES (%s, %s, %s, %s) ON CONFLICT (keyword_normalized, mode) DO NOTHING
+                INSERT INTO search_keywords (keyword_normalized, keyword, mode, origin, cooldown_days)
+                VALUES (%s, %s, %s, %s, %s) ON CONFLICT (keyword_normalized, mode) DO NOTHING
                 """,
-                (norm, keyword, mode, origin),
+                (norm, keyword, mode, origin, COOLDOWN_DAYS.get(mode, COOLDOWN_DAYS["youtube"])[0]),
             )
             cur.execute("SELECT cooldown_days FROM search_keywords WHERE keyword_normalized = %s AND mode = %s", (norm, mode))
             cooldown = cur.fetchone()[0]
+            low, high = COOLDOWN_DAYS.get(mode, COOLDOWN_DAYS["youtube"])
             if not ok:  # API error: try again tomorrow, history unchanged
                 cur.execute(
                     "UPDATE search_keywords SET next_due_at = %s, updated_at = NOW() "
@@ -219,7 +236,7 @@ def record_keyword_run(keyword: str, mode: str, new_results: int | None, ok: boo
                     (now + timedelta(days=1), norm, mode),
                 )
             else:
-                cooldown = min(cooldown * 2, COOLDOWN_MAX) if not new_results else COOLDOWN_MIN
+                cooldown = min(max(cooldown, low) * 2, high) if not new_results else low
                 cur.execute(
                     """
                     UPDATE search_keywords SET

@@ -34,6 +34,8 @@ resources:
           default: ${var.auto_search_max_results}
         - name: auto_channel_limit
           default: ${var.auto_channel_limit}
+        - name: auto_places_count
+          default: ${var.auto_places_count}
         - name: comments_max_videos
           default: ${var.comments_max_videos}
       tasks:
@@ -93,6 +95,13 @@ resources:
           depends_on: [{task_key: bronze_ingest}]
           notebook_task:
             notebook_path: ../src/notebooks/stg/search_results.ipynb
+          timeout_seconds: 1800
+
+        # Google Maps Text Search results (search job + auto_search mode places) -> Google-only restaurants
+        - task_key: stg_places
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/places.ipynb
           timeout_seconds: 1800
 
         # LLM video type (restaurant_review / food_other / not_food) of new or changed videos;
@@ -156,6 +165,7 @@ resources:
           depends_on:
             - task_key: gold_dims
             - task_key: stg_restaurant_place_details
+            - task_key: stg_places
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
