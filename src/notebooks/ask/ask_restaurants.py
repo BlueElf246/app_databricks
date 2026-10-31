@@ -58,6 +58,42 @@ cols = set(spark.table(f"{GOLD}.agg_restaurant_ranking").columns)
 def col(name, cast="BIGINT"):
     return f"r.{name}" if name in cols else f"CAST(NULL AS {cast})"
 
+# Old (pre-2025) district from the new ward: since the 2025 reform Google writes only the new
+# ward ("..., Tân Hưng, Hồ Chí Minh") and no district, so ~38% of rows have no district.
+# src/reference/vn_new_ward_to_old_district.csv (built from the vietnamadminunits package)
+# maps each new ward to the old district most of it came from, e.g. Tân Hưng -> Quận 7.
+# 17 of the 168 HCMC wards were merged from 2 old districts: districts_old lists all of them.
+import os
+import pandas as pd
+
+ref_path = next(p for p in ["../../reference/vn_new_ward_to_old_district.csv",
+                            "src/reference/vn_new_ward_to_old_district.csv"] if os.path.exists(p))
+ward_ref = pd.read_csv(ref_path, dtype=str).fillna("")
+province_keys = {k: re.sub(r"^(thanhpho|tinh)", "", k) for k in ward_ref.province_key.unique()}
+lookup = {(r.province_key, r.ward_short_key): r for r in ward_ref.itertuples()}
+
+
+def _key(text: str) -> str:
+    text = re.sub(r"^\s*(phường|phuong|xã|xa|p\.|đặc khu|dac khu)\s*", "", text.strip(), flags=re.I)
+    return re.sub(r"[^a-z0-9]", "", _strip_accents(text))
+
+
+def _old_district(address, city):
+    blob = _key(f"{address or ''} {city or ''}")
+    provinces = [k for k, short in province_keys.items() if short in blob] or list(province_keys)
+    for part in reversed((address or "").split(",")[:-1]):   # last part = city
+        for pk in provinces:
+            hit = lookup.get((pk, _key(part)))
+            if hit is not None:
+                return hit.district_old, hit.districts_old, hit.ward
+    return None, None, None
+
+
+addr = spark.sql(f"SELECT restaurant_id, address, city FROM {GOLD}.agg_restaurant_ranking").toPandas()
+old = [(r.restaurant_id, *_old_district(r.address, r.city)) for r in addr.itertuples()]
+spark.createDataFrame(old, "restaurant_id STRING, district_old STRING, districts_old STRING, ward_new STRING") \
+     .createOrReplaceTempView("old_district")
+
 # Same district normalization as the dashboard's "restaurants" dataset (keep in sync).
 sql = f"""
 WITH r AS (
@@ -69,6 +105,10 @@ WITH r AS (
                 '\\\\s*\\\\(cũ\\\\)$', '')), ''), 'Chưa rõ')
     END AS district_norm
   FROM {GOLD}.agg_restaurant_ranking a
+),
+r2 AS (
+  SELECT r.*, o.district_old, o.districts_old, o.ward_new
+  FROM r LEFT JOIN old_district o ON o.restaurant_id = r.restaurant_id
 ),
 videos AS (   -- review videos per restaurant with their latest view count
   SELECT r.restaurant_id, v.title, v.video_url, c.channel_title, s.view_count
@@ -89,7 +129,7 @@ top_video AS (
   FROM videos GROUP BY restaurant_id
 ),
 picked AS (
-  SELECT r.restaurant_id, r.restaurant_name, r.address, r.district_norm AS district, r.city,
+  SELECT r.restaurant_id, r.restaurant_name, r.address, r.district_norm AS district, r.district_old, r.ward_new, r.city,
          r.cuisine, r.cuisine_detail, r.price_band,
          CASE WHEN r.price_min_vnd IS NOT NULL
               THEN concat(CAST(round(r.price_min_vnd / 1000) AS INT), 'k',
@@ -102,14 +142,16 @@ picked AS (
                   || url_encode(concat_ws(' ', r.restaurant_name, r.address))) AS maps_url,
          t.top_video_url, t.top_video_title, t.top_video_channel, t.top_video_views,
          r.as_of_date_key
-  FROM r LEFT JOIN top_video t ON t.restaurant_id = r.restaurant_id
+  FROM r2 r LEFT JOIN top_video t ON t.restaurant_id = r.restaurant_id
   WHERE (:city = '' OR r.city ILIKE concat('%', :city, '%'))
     AND (:district_no = 0
          OR r.district_norm = concat('Quận ', :district_no)
+         OR array_contains(split(r.districts_old, '[|]'), concat('Quận ', :district_no))
          -- district missing on ~38% of rows: fall back to the address text
          OR (r.district_norm = 'Chưa rõ'
              AND r.address RLIKE concat('(?iu)(quận|quan|q\\\\.?)\\\\s*0?', :district_no, '([^0-9]|$)')))
     AND (:district_name = '' OR r.district_norm ILIKE concat('%', :district_name, '%')
+         OR r.districts_old ILIKE concat('%', :district_name, '%')
          OR r.address ILIKE concat('%', :district_name, '%'))
     AND (:dish = '' OR r.cuisine ILIKE concat('%', :dish, '%') OR r.cuisine_detail ILIKE concat('%', :dish, '%')
          OR r.restaurant_name ILIKE concat('%', :dish, '%')
