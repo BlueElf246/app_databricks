@@ -19,6 +19,11 @@ resources:
       tags:
         project: project1
         layer: landing
+      # Service principal "claude-search": lets Claude chat sessions start this job (Jobs API run-now)
+      # and read its output; nothing else in the workspace.
+      permissions:
+        - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382
+          level: CAN_MANAGE_RUN
       parameters:
         - name: mode
           default: youtube
