@@ -46,6 +46,12 @@ variables:
   auto_search_max_results:
     description: Results per auto_search keyword (1-50)
     default: "25"
+  auto_channel_limit:
+    description: "Followed food channels whose new uploads auto_search lists per day (playlistItems.list, 1 unit each)"
+    default: "100"
+  comments_max_videos:
+    description: "Food review videos whose comments fetch_comments downloads per day (commentThreads.list, 1 unit each)"
+    default: "200"
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule
     default: PAUSED

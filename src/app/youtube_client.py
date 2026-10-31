@@ -20,6 +20,7 @@ YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 YOUTUBE_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 YOUTUBE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 YOUTUBE_COMMENT_THREADS_URL = "https://www.googleapis.com/youtube/v3/commentThreads"
+YOUTUBE_PLAYLIST_ITEMS_URL = "https://www.googleapis.com/youtube/v3/playlistItems"
 
 
 class YouTubeClientError(Exception):
@@ -174,12 +175,16 @@ def get_channels(channel_ids: list[str]) -> dict[str, dict[str, Any]]:
     return channels
 
 
-def get_comment_threads(video_id: str, max_results: int = 20) -> list[dict[str, Any]]:
-    """Fetch top-level comment threads for a video."""
+def get_comment_threads(video_id: str, max_results: int = 20, order: str = "time") -> list[dict[str, Any]]:
+    """Fetch top-level comment threads for a video (1 quota unit, at most 100 threads).
+
+    order: "time" (newest first, the API default) or "relevance" (top comments).
+    """
     params = {
         "part": "snippet",
         "videoId": video_id,
         "maxResults": max_results,
+        "order": order,
         "textFormat": "plainText",
     }
     data = _get_json(YOUTUBE_COMMENT_THREADS_URL, params)
@@ -204,3 +209,40 @@ def get_comment_threads(video_id: str, max_results: int = 20) -> list[dict[str, 
             }
         )
     return comments
+
+def uploads_playlist_id(channel_id: str) -> str:
+    """A channel's "uploads" playlist: UC... -> UU... (saves a channels.list call)."""
+    return "UU" + channel_id[2:] if channel_id.startswith("UC") else channel_id
+
+
+def get_channel_uploads(channel_id: str, max_results: int = 50) -> list[dict[str, Any]]:
+    """Latest uploads of a channel, newest first: playlistItems.list on its uploads playlist.
+
+    1 quota unit per call (search.list costs 100). Returns video_id, title, published_at.
+    """
+    params = {
+        "part": "snippet,contentDetails",
+        "playlistId": uploads_playlist_id(channel_id),
+        "maxResults": max_results,
+    }
+    data = _get_json(YOUTUBE_PLAYLIST_ITEMS_URL, params)
+    uploads: list[dict[str, Any]] = []
+    for item in data.get("items", []):
+        content = item.get("contentDetails", {})
+        snippet = item.get("snippet", {})
+        video_id = content.get("videoId") or snippet.get("resourceId", {}).get("videoId")
+        if not video_id:
+            continue
+        uploads.append(
+            {
+                "video_id": video_id,
+                "channel_id": channel_id,
+                "title": snippet.get("title"),
+                "published_at": content.get("videoPublishedAt") or snippet.get("publishedAt"),
+            }
+        )
+    return uploads
+
+
+def is_quota_error(error: YouTubeClientError) -> bool:
+    return error.status_code == 403 and "quota" in str(error.detail).lower()

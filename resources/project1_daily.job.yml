@@ -5,7 +5,7 @@ resources:
     project1_daily:
       name: ${var.job_name_prefix}Project 1 — YouTube restaurants medallion (daily)
       description: >-
-        auto_search → refresh → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_ranking.
+        auto_search → refresh → fetch_comments → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
@@ -32,8 +32,13 @@ resources:
           default: ${var.auto_search_count}
         - name: auto_search_max_results
           default: ${var.auto_search_max_results}
+        - name: auto_channel_limit
+          default: ${var.auto_channel_limit}
+        - name: comments_max_videos
+          default: ${var.comments_max_videos}
       tasks:
-        # The system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
+        # Source A first: new uploads of followed food channels (1 unit per channel), then the
+        # system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
         # never fails, so refresh always runs. New videos flow through the rest of this run.
         - task_key: auto_search
           notebook_task:
@@ -50,9 +55,18 @@ resources:
 
         # Keyword search (YouTube / Google Places) is not part of the daily run: it is the
         # on-demand job project1_search (project1_search.job.yml); its rows land here on the next run.
+        # Top 100 comments of food review videos (1 unit per video, at most comments_max_videos per run,
+        # each video again after 30 days); never fails, so Bronze always runs.
+        - task_key: fetch_comments
+          depends_on: [{task_key: refresh_daily}]
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/fetch_comments.ipynb
+          timeout_seconds: 1800
+
         - task_key: bronze_ingest
           depends_on:
             - task_key: refresh_daily
+            - task_key: fetch_comments
           notebook_task:
             notebook_path: ../src/notebooks/bronze/ingest_raw.ipynb
           timeout_seconds: 1800
@@ -154,8 +168,15 @@ resources:
             notebook_path: ../src/notebooks/gold/checks.ipynb
           timeout_seconds: 1800
 
-        - task_key: gold_agg_ranking
+        # Restaurant x day credited views gained (7-day trending input of agg_restaurant_ranking)
+        - task_key: gold_agg_daily_views
           depends_on: [{task_key: gold_checks}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_restaurant_daily_views.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_agg_ranking
+          depends_on: [{task_key: gold_agg_daily_views}]
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
           timeout_seconds: 1800

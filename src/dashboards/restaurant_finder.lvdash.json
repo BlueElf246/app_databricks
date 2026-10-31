@@ -27,6 +27,11 @@
         "  channel_count,\n",
         "  video_count,\n",
         "  credited_views,\n",
+        "  credited_views_7d AS views_7d,\n",
+        "  credited_views_prev_7d AS views_prev_7d,\n",
+        "  round(100 * growth_pct_7d, 1) AS growth_pct_7d,\n",
+        "  trending_rank_in_city,\n",
+        "  new_videos_7d,\n",
         "  round(100 * like_rate, 2) AS like_rate_pct,\n",
         "  address,\n",
         "  CASE WHEN district RLIKE '(?iu)^(q\\\\.?\\\\s*|quận\\\\s+)0*[0-9]+$'\n",
@@ -88,6 +93,91 @@
         "WHERE m.restaurant_key <> -1\n",
         "ORDER BY l.view_count DESC NULLS LAST"
       ]
+    },
+    {
+      "name": "trending",
+      "displayName": "Quán đang hot 7 ngày (agg_restaurant_ranking)",
+      "queryLines": [
+        "-- Same rows as the restaurants dataset (keep in sync), only restaurants ranked by views in the last 7 days\n",
+        "SELECT * FROM (\n",
+        "SELECT\n",
+        "  a.restaurant_id,\n",
+        "  restaurant_name,\n",
+        "  COALESCE(google_maps_uri,\n",
+        "           'https://www.google.com/maps/search/?api=1&query=' || url_encode(concat_ws(' ', restaurant_name, address))) AS maps_url,\n",
+        "  cuisine,\n",
+        "  cuisine_detail,\n",
+        "  price_band,\n",
+        "  CASE WHEN price_min_vnd IS NOT NULL\n",
+        "       THEN concat(CAST(round(price_min_vnd / 1000) AS INT), 'k',\n",
+        "                   COALESCE(' – ' || CAST(round(price_max_vnd / 1000) AS INT) || 'k', '+'))\n",
+        "  END AS price_range,\n",
+        "  google_rating,\n",
+        "  google_rating_count,\n",
+        "  legit_score,\n",
+        "  legit_label,\n",
+        "  CASE WHEN legit_label = 'Legit' THEN 1 ELSE 0 END AS is_legit,\n",
+        "  legit_rank_in_city,\n",
+        "  round(100 * ranking_score, 1) AS hot_score,\n",
+        "  rank_in_city AS hot_rank_in_city,\n",
+        "  channel_count,\n",
+        "  video_count,\n",
+        "  credited_views,\n",
+        "  credited_views_7d AS views_7d,\n",
+        "  credited_views_prev_7d AS views_prev_7d,\n",
+        "  round(100 * growth_pct_7d, 1) AS growth_pct_7d,\n",
+        "  trending_rank_in_city,\n",
+        "  new_videos_7d,\n",
+        "  round(100 * like_rate, 2) AS like_rate_pct,\n",
+        "  address,\n",
+        "  CASE WHEN district RLIKE '(?iu)^(q\\\\.?\\\\s*|quận\\\\s+)0*[0-9]+$'\n",
+        "       THEN concat('Quận ', CAST(regexp_extract(district, '([0-9]+)', 1) AS INT))\n",
+        "       ELSE COALESCE(nullif(trim(regexp_replace(regexp_replace(district,\n",
+        "              '(?iu)^(q\\\\.\\\\s*|quận\\\\s+|huyện\\\\s+|thị trấn\\\\s+|tp\\\\.?\\\\s*|thành phố\\\\s+)', ''),\n",
+        "              '\\\\s*\\\\(cũ\\\\)$', '')), ''), 'Chưa rõ')\n",
+        "  END AS district,\n",
+        "  city,\n",
+        "  latitude,\n",
+        "  longitude,\n",
+        "  a.photo_name,\n",
+        "  t.thumbnail_url\n",
+        "FROM agg_restaurant_ranking a\n",
+        "-- Google returns no photos for this key, so show the thumbnail of the most viewed review video\n",
+        "LEFT JOIN (\n",
+        "  SELECT restaurant_id, max_by(thumbnail_url, view_count) AS thumbnail_url\n",
+        "  FROM (\n",
+        "    SELECT r.restaurant_id, v.thumbnail_url, s.view_count\n",
+        "    FROM fact_video_restaurant_mention m\n",
+        "    JOIN dim_restaurant r ON r.restaurant_key = m.restaurant_key\n",
+        "    JOIN dim_video v      ON v.video_key = m.video_key\n",
+        "    LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count\n",
+        "               FROM fact_video_daily_snapshot GROUP BY video_key) s ON s.video_key = m.video_key\n",
+        "    WHERE m.restaurant_key <> -1\n",
+        "  )\n",
+        "  GROUP BY restaurant_id\n",
+        ") t ON t.restaurant_id = a.restaurant_id\n",
+        ") r\n",
+        "WHERE trending_rank_in_city IS NOT NULL\n",
+        "ORDER BY views_7d DESC, credited_views DESC\n"
+      ]
+    },
+    {
+      "name": "daily_views",
+      "displayName": "View tăng theo ngày (agg_restaurant_daily_views)",
+      "queryLines": [
+        "-- Last 14 snapshot days of the 10 restaurants with the most views in the last 7 days (per city)\n",
+        "SELECT\n",
+        "  to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date,\n",
+        "  a.restaurant_name,\n",
+        "  a.city,\n",
+        "  d.credited_views_gained\n",
+        "FROM agg_restaurant_daily_views d\n",
+        "JOIN agg_restaurant_ranking a ON a.restaurant_id = d.restaurant_id\n",
+        "WHERE a.trending_rank_in_city <= 10\n",
+        "  AND d.snapshot_date_key >= (SELECT CAST(date_format(date_sub(to_date(CAST(MAX(snapshot_date_key) AS STRING), 'yyyyMMdd'), 13), 'yyyyMMdd') AS INT)\n",
+        "                              FROM agg_restaurant_daily_views)\n",
+        "ORDER BY snapshot_date, a.trending_rank_in_city\n"
+      ]
     }
   ],
   "pages": [
@@ -129,6 +219,32 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_city_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_city_daily_q",
+                "query": {
+                  "datasetName": "daily_views",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -140,6 +256,16 @@
                     "fieldName": "city",
                     "displayName": "Thành phố",
                     "queryName": "f_city_q"
+                  },
+                  {
+                    "fieldName": "city",
+                    "displayName": "Thành phố",
+                    "queryName": "f_city_trending_q"
+                  },
+                  {
+                    "fieldName": "city",
+                    "displayName": "Thành phố",
+                    "queryName": "f_city_daily_q"
                   }
                 ]
               },
@@ -172,6 +298,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_district_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "district",
+                      "expression": "`district`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -183,6 +322,11 @@
                     "fieldName": "district",
                     "displayName": "Quận",
                     "queryName": "f_district_q"
+                  },
+                  {
+                    "fieldName": "district",
+                    "displayName": "Quận",
+                    "queryName": "f_district_trending_q"
                   }
                 ]
               },
@@ -215,6 +359,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_cuisine_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "cuisine",
+                      "expression": "`cuisine`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -226,6 +383,11 @@
                     "fieldName": "cuisine",
                     "displayName": "Khẩu vị",
                     "queryName": "f_cuisine_q"
+                  },
+                  {
+                    "fieldName": "cuisine",
+                    "displayName": "Khẩu vị",
+                    "queryName": "f_cuisine_trending_q"
                   }
                 ]
               },
@@ -258,6 +420,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_price_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "price_band",
+                      "expression": "`price_band`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -269,6 +444,11 @@
                     "fieldName": "price_band",
                     "displayName": "Khoảng giá / người",
                     "queryName": "f_price_q"
+                  },
+                  {
+                    "fieldName": "price_band",
+                    "displayName": "Khoảng giá / người",
+                    "queryName": "f_price_trending_q"
                   }
                 ]
               },
@@ -301,6 +481,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_legit_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "legit_label",
+                      "expression": "`legit_label`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -312,6 +505,11 @@
                     "fieldName": "legit_label",
                     "displayName": "Độ tin",
                     "queryName": "f_legit_q"
+                  },
+                  {
+                    "fieldName": "legit_label",
+                    "displayName": "Độ tin",
+                    "queryName": "f_legit_trending_q"
                   }
                 ]
               },
@@ -344,6 +542,32 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "f_name_trending_q",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "restaurant_name",
+                      "expression": "`restaurant_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_name_daily_q",
+                "query": {
+                  "datasetName": "daily_views",
+                  "fields": [
+                    {
+                      "name": "restaurant_name",
+                      "expression": "`restaurant_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -355,6 +579,16 @@
                     "fieldName": "restaurant_name",
                     "displayName": "Tên quán",
                     "queryName": "f_name_q"
+                  },
+                  {
+                    "fieldName": "restaurant_name",
+                    "displayName": "Tên quán",
+                    "queryName": "f_name_trending_q"
+                  },
+                  {
+                    "fieldName": "restaurant_name",
+                    "displayName": "Tên quán",
+                    "queryName": "f_name_daily_q"
                   }
                 ]
               },
@@ -570,6 +804,456 @@
             "x": 0,
             "y": 5,
             "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "t_trending",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trending",
+                  "fields": [
+                    {
+                      "name": "trending_rank_in_city",
+                      "expression": "`trending_rank_in_city`"
+                    },
+                    {
+                      "name": "thumbnail_url",
+                      "expression": "`thumbnail_url`"
+                    },
+                    {
+                      "name": "restaurant_name",
+                      "expression": "`restaurant_name`"
+                    },
+                    {
+                      "name": "views_7d",
+                      "expression": "`views_7d`"
+                    },
+                    {
+                      "name": "views_prev_7d",
+                      "expression": "`views_prev_7d`"
+                    },
+                    {
+                      "name": "growth_pct_7d",
+                      "expression": "`growth_pct_7d`"
+                    },
+                    {
+                      "name": "new_videos_7d",
+                      "expression": "`new_videos_7d`"
+                    },
+                    {
+                      "name": "video_count",
+                      "expression": "`video_count`"
+                    },
+                    {
+                      "name": "legit_label",
+                      "expression": "`legit_label`"
+                    },
+                    {
+                      "name": "cuisine",
+                      "expression": "`cuisine`"
+                    },
+                    {
+                      "name": "district",
+                      "expression": "`district`"
+                    },
+                    {
+                      "name": "maps_url",
+                      "expression": "`maps_url`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "trending_rank_in_city",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 0,
+                    "title": "Hạng",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "trending_rank_in_city"
+                  },
+                  {
+                    "fieldName": "thumbnail_url",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "96",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "image",
+                    "visible": true,
+                    "order": 1,
+                    "title": "",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "thumbnail_url"
+                  },
+                  {
+                    "fieldName": "restaurant_name",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ maps_url }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "link",
+                    "visible": true,
+                    "order": 2,
+                    "title": "Quán",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "restaurant_name"
+                  },
+                  {
+                    "fieldName": "views_7d",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "View 7 ngày",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "views_7d"
+                  },
+                  {
+                    "fieldName": "views_prev_7d",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 4,
+                    "title": "7 ngày trước",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "views_prev_7d"
+                  },
+                  {
+                    "fieldName": "growth_pct_7d",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 5,
+                    "title": "% so tuần trước",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "growth_pct_7d"
+                  },
+                  {
+                    "fieldName": "new_videos_7d",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 6,
+                    "title": "Video mới",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "new_videos_7d"
+                  },
+                  {
+                    "fieldName": "video_count",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 7,
+                    "title": "Số video",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "video_count"
+                  },
+                  {
+                    "fieldName": "legit_label",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 8,
+                    "title": "Độ tin",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "legit_label"
+                  },
+                  {
+                    "fieldName": "cuisine",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 9,
+                    "title": "Khẩu vị",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "cuisine"
+                  },
+                  {
+                    "fieldName": "district",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 10,
+                    "title": "Quận",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "district"
+                  }
+                ]
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": true,
+              "frame": {
+                "showTitle": true,
+                "title": "Đang hot 7 ngày: quán có nhiều view tăng nhất (≥ 1.000 view trong 7 ngày; % chỉ hiện khi tuần trước ≥ 500 view)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 4,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "l_daily_views",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "daily_views",
+                  "fields": [
+                    {
+                      "name": "snapshot_date",
+                      "expression": "`snapshot_date`"
+                    },
+                    {
+                      "name": "sum(credited_views_gained)",
+                      "expression": "SUM(`credited_views_gained`)"
+                    },
+                    {
+                      "name": "restaurant_name",
+                      "expression": "`restaurant_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "snapshot_date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Ngày"
+                },
+                "y": {
+                  "fieldName": "sum(credited_views_gained)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "View tăng trong ngày"
+                },
+                "color": {
+                  "fieldName": "restaurant_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Quán"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "View tăng mỗi ngày, 14 ngày gần nhất (top 10 đang hot)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 13,
+            "width": 2,
             "height": 8
           }
         },
@@ -1104,7 +1788,7 @@
           },
           "position": {
             "x": 0,
-            "y": 13,
+            "y": 21,
             "width": 6,
             "height": 12
           }
