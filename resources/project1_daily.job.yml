@@ -6,6 +6,7 @@ resources:
       name: ${var.job_name_prefix}Project 1 — YouTube restaurants medallion (daily)
       description: >-
         auto_search → refresh → fetch_comments → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
+        osm_ingest (weekly OpenStreetMap snapshot, skipped on the other days) → stg_osm_restaurants feeds gold_restaurants.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
@@ -64,6 +65,19 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/refresh/fetch_comments.ipynb
           timeout_seconds: 1800
+
+        # OpenStreetMap food places in HCMC (one Overpass query per week, skipped on other days; never fails).
+        # Runs in parallel with the YouTube tasks; stg_osm_restaurants fills cuisine / opening hours in gold_restaurants.
+        - task_key: osm_ingest
+          notebook_task:
+            notebook_path: ../src/notebooks/bronze/osm_ingest.ipynb
+          timeout_seconds: 900
+
+        - task_key: stg_osm_restaurants
+          depends_on: [{task_key: osm_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/osm_restaurants.ipynb
+          timeout_seconds: 900
 
         - task_key: bronze_ingest
           depends_on:
@@ -136,8 +150,8 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_geocode.ipynb
           timeout_seconds: 1800
 
-        # Google Place Details (rating, reviews, price range, cuisine type, photo) of matched places,
-        # each place re-read every 30 days; capped under the free Enterprise calls per month
+        # Google Place Details (rating, price range, cuisine type, photo, up to 5 reviews) of matched places,
+        # each place re-read every 30 days; capped under the free Enterprise + Atmosphere calls per month
         - task_key: stg_restaurant_place_details
           depends_on: [{task_key: stg_restaurant_geocode}]
           notebook_task:
@@ -166,6 +180,7 @@ resources:
             - task_key: gold_dims
             - task_key: stg_restaurant_place_details
             - task_key: stg_places
+            - task_key: stg_osm_restaurants
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
