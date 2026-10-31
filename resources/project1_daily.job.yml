@@ -185,8 +185,31 @@ resources:
             notebook_path: ../src/notebooks/gold/agg_restaurant_daily_views.ipynb
           timeout_seconds: 1800
 
+        # LLM sentiment of comments on food review videos that mention a restaurant (most liked first, capped per run)
+        - task_key: stg_comment_sentiment
+          depends_on:
+            - task_key: stg_comments
+            - task_key: stg_restaurant_mentions
+            - task_key: stg_video_classification
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/comment_sentiment.ipynb
+            base_parameters:
+              max_comments: "5000"
+          timeout_seconds: 3600
+
+        # Restaurant x comment (split credit) with sentiment, for agg_restaurant_ranking and the dashboard
+        - task_key: gold_agg_comments
+          depends_on:
+            - task_key: gold_checks
+            - task_key: stg_comment_sentiment
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_restaurant_comments.ipynb
+          timeout_seconds: 1800
+
         - task_key: gold_agg_ranking
-          depends_on: [{task_key: gold_agg_daily_views}]
+          depends_on:
+            - task_key: gold_agg_daily_views
+            - task_key: gold_agg_comments
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
           timeout_seconds: 1800
