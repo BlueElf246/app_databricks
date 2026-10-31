@@ -28,31 +28,17 @@ resources:
           default: ${var.catalog}.${resources.schemas.gold.name}
         - name: dry_run
           default: ${var.dry_run}
-        - name: keyword
-          default: ${var.search_keyword}
-        - name: max_results
-          default: ${var.search_max_results}
-        - name: search_order
-          default: ${var.search_order}
       tasks:
         - task_key: refresh_daily
           notebook_task:
             notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
           timeout_seconds: 1800
 
-        - task_key: search_daily
-          notebook_task:
-            notebook_path: ../src/notebooks/refresh/run_search.ipynb
-            base_parameters:
-              keyword: ${var.search_keyword}
-              max_results: ${var.search_max_results}
-              order: ${var.search_order}
-          timeout_seconds: 1800
-
+        # Keyword search (YouTube / Google Places) is not part of the daily run: it is the
+        # on-demand job project1_search (project1_search.job.yml); its rows land here on the next run.
         - task_key: bronze_ingest
           depends_on:
             - task_key: refresh_daily
-            - task_key: search_daily
           notebook_task:
             notebook_path: ../src/notebooks/bronze/ingest_raw.ipynb
           timeout_seconds: 1800
@@ -105,6 +91,14 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_geocode.ipynb
           timeout_seconds: 1800
 
+        # Google Place Details (rating, reviews, price range, cuisine type, photo) of matched places,
+        # each place re-read every 30 days; capped under the free Enterprise calls per month
+        - task_key: stg_restaurant_place_details
+          depends_on: [{task_key: stg_restaurant_geocode}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/restaurant_place_details.ipynb
+          timeout_seconds: 1800
+
         - task_key: gold_dims
           depends_on:
             - task_key: stg_channels
@@ -124,7 +118,7 @@ resources:
         - task_key: gold_restaurants
           depends_on:
             - task_key: gold_dims
-            - task_key: stg_restaurant_geocode
+            - task_key: stg_restaurant_place_details
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
@@ -142,3 +136,12 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
           timeout_seconds: 1800
+
+        # Always runs (even after a failure): row counts + top 10 as JSON in the run output,
+        # so a chat session can review the run via the Jobs API (runs/get-output).
+        - task_key: run_summary
+          depends_on: [{task_key: gold_agg_ranking}]
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/run_summary.ipynb
+          timeout_seconds: 900

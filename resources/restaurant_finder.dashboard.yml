@@ -1,0 +1,11 @@
+# AI/BI dashboard over Gold: find restaurants by city / district, cuisine, price band, legit label.
+# Dataset queries use unqualified table names; dataset_catalog / dataset_schema point them at the
+# target's Gold schema (prod.dev_gold in dev, prod.gold in prod).
+resources:
+  dashboards:
+    restaurant_finder:
+      display_name: ${var.job_name_prefix}Project 1 — Tìm quán ăn ngon
+      file_path: ../src/dashboards/restaurant_finder.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.gold.name}

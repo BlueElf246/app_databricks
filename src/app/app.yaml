@@ -23,3 +23,6 @@ env:
     valueFrom: sql-warehouse
   - name: GOLD_SCHEMA
     value: "prod.gold"
+  # Job run by the Search ingest page (resource search-job in youtube_search.app.yml)
+  - name: SEARCH_JOB_ID
+    valueFrom: search-job

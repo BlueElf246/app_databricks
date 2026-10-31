@@ -114,9 +114,9 @@ if st.button("Tìm kiếm", type="primary"):
                 channel_ids = list({v["channel_id"] for v in videos if v.get("channel_id")})
                 channels = get_channels(channel_ids)
 
-                upsert_channels(list(channels.values()))
-                upsert_videos(videos)
-                log_search_results(search_entries)
+                upsert_channels(list(channels.values()), source="app")
+                upsert_videos(videos, source="app")
+                log_search_results(search_entries, source="app")
 
                 st.session_state["search_videos_result"] = videos
 

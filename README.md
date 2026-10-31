@@ -117,11 +117,12 @@ YouTube API ─► app (search / save) ─┐
 | Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description + transcript, only for new / changed videos or when a transcript arrives (`stg_restaurant_extraction_log`) |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
-| Gold | `dim_restaurant` | one row per version | SCD 2 on address / location (name is type 1); dedup = same normalized name + district (no geocoder yet) |
+| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, photo) of geocoded places, re-read every 30 days, max 900 calls per month (free Enterprise tier) |
+| Gold | `dim_restaurant` | one row per version | SCD 2 on address / location; name, `cuisine`, `price_band`, `google_rating`, `google_rating_count` are type 1; dedup = Google `place_id`, else normalized name + district |
 | Gold | `fact_video_daily_snapshot`, `fact_channel_daily_snapshot` | id × snapshot day | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` additive |
 | Gold | `fact_comment` / `fact_search_hit` | comment / run × keyword × video | MERGE / insert-only MERGE |
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
-| Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city) |
+| Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city); `legit_score` 0–100 from Bayesian Google rating, review count, distinct channels, like rate, views 30d + `legit_label` |
 
 `src/notebooks/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
@@ -132,6 +133,7 @@ Job **"Project 1 — YouTube restaurants medallion (daily)"** (defined in `resou
 ```
 refresh_daily → bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results
   → gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode
+  → stg_restaurant_place_details
   → gold_facts + gold_restaurants → gold_checks → gold_agg_ranking
 ```
 
@@ -157,6 +159,7 @@ python refresh_daily.py             # write to Postgres
 
 ## Known limits
 
-- No geocoder: `dim_restaurant.latitude` / `longitude` / `place_id` are NULL and dedup uses name + district.
+- `cuisine` / `price_band` come only from Google Places: restaurants Google did not match, or whose only type is `restaurant`, show `Chưa rõ`.
+- YouTube has no share count, so `legit_score` does not use shares.
 - Snapshot history before 2026-10-26 is sparse (no daily refresh yet), so the first gains cover more than one day.
 - `dim_keyword.dish` / `city` are NULL until keyword parsing is built; `search_order` / `result_rank` are NULL for searches before 2026-10-26.
