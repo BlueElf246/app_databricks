@@ -106,7 +106,11 @@ def _youtube(query: str, max_results: int, order: str, published_after, publishe
         upsert_videos(videos, source=source)
         log_search_results(search_entries, source=source, search_run_id=run["search_run_id"])
         print(f"written: {len(channels)} channels, {len(videos)} videos, {len(search_entries)} search rows")
-    return {"videos": len(videos), "channels": len(channels), "search_rows": len(search_entries)}
+    top = [
+        {"title": v.get("title"), "channel": v.get("channel_title"), "views": v.get("view_count"), "url": v.get("video_url")}
+        for v in videos[:10]
+    ]
+    return {"videos": len(videos), "channels": len(channels), "search_rows": len(search_entries), "top": top}
 
 
 def _places(query: str, max_results: int, location: str | None, included_type: str | None,
@@ -153,7 +157,12 @@ def _places(query: str, max_results: int, location: str | None, included_type: s
             search_run_id=run["search_run_id"],
         )
         print(f"written: {len(rows)} places, {len(rows)} place_search_results rows")
-    return {"places": len(rows), "api_calls": calls}
+    top = [
+        {k: row[k] for k in ("display_name", "rating", "user_rating_count", "price_level",
+                             "formatted_address", "google_maps_uri")}
+        for row in rows[:10]
+    ]
+    return {"places": len(rows), "api_calls": calls, "top": top}
 
 
 def run_search(
@@ -204,7 +213,7 @@ def run_search(
     except QuotaReached as error:
         run["status"], run["error"] = "quota", str(error)
         print(f"⏸️ {error}; nothing called")
-        counts = {"api_calls": 0}
+        counts = {"api_calls": 0, "status": "quota"}
     except Exception as error:
         run["status"], run["error"] = "error", str(error)[:2000]
         if not dry_run:
