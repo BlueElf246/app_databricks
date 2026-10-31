@@ -70,7 +70,7 @@ def show(result: dict) -> None:
         price = r.get("price_range") or r.get("price_band") or "-"
         print(f"{i:>2}. {r['restaurant_name']} — {r.get('cuisine') or '-'} · {rating} · giá {price}"
               f" · legit {r.get('legit_score')} ({r.get('legit_label')}) · 7d views {r.get('views_7d')}")
-        print(f"    {r.get('address') or '-'} [{r.get('district')}, {r.get('city')}]")
+        print(f"    {r.get('address') or '-'} [{r.get('district_old') or r.get('district')}{' · ' + r['ward_new'] if r.get('ward_new') else ''}, {r.get('city')}]")
         print(f"    Maps: {r['maps_url']}")
         if r.get("top_video_url"):
             print(f"    Video: {r['top_video_title']} ({r.get('top_video_channel')}, {r.get('top_video_views')} view) {r['top_video_url']}")
