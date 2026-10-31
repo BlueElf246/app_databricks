@@ -19,11 +19,8 @@ resources:
       tags:
         project: project1
         layer: landing
-      # Service principal "claude-search": lets Claude chat sessions start this job (Jobs API run-now)
-      # and read its output; nothing else in the workspace.
-      permissions:
-        - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382
-          level: CAN_MANAGE_RUN
+      # permissions: set per target in databricks.yml. A permissions block makes the bundle own the
+      # whole ACL, so it must list every principal that runs this job (claude-search + the app).
       parameters:
         - name: mode
           default: youtube
