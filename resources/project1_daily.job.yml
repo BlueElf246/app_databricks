@@ -81,6 +81,14 @@ resources:
             notebook_path: ../src/notebooks/stg/search_results.ipynb
           timeout_seconds: 1800
 
+        # LLM video type (restaurant_review / food_other / not_food) of new or changed videos;
+        # is_food_review = false (confident not_food) makes transcripts and restaurant extraction skip a video
+        - task_key: stg_video_classification
+          depends_on: [{task_key: stg_videos}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/video_classification.ipynb
+          timeout_seconds: 1800
+
         # Gemini transcript of new videos (free tier: at most 7 h of video per day, max_videos calls per run)
         - task_key: stg_video_transcripts
           depends_on: [{task_key: gold_dims}]
@@ -119,6 +127,7 @@ resources:
             - task_key: stg_videos
             - task_key: stg_comments
             - task_key: stg_search_results
+            - task_key: stg_video_classification
           notebook_task:
             notebook_path: ../src/notebooks/gold/dims.ipynb
           timeout_seconds: 1800
