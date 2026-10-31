@@ -1,0 +1,43 @@
+# On-demand keyword search (design "Thiết kế lại search ingest", 2026-10-31): one run = one search,
+# on YouTube or Google Places, saved to Lakebase Postgres. No schedule: triggered from the app's
+# "Search ingest" page (Jobs API run-now with job parameters) or Jobs UI "Run now with different
+# parameters". The daily job picks the new rows up through bronze_ingest.
+resources:
+  jobs:
+    project1_search:
+      name: ${var.job_name_prefix}Project 1 — keyword search (YouTube / Google Places)
+      description: >-
+        mode=youtube → videos / channels / search_results; mode=places → places / place_search_results.
+        Every real run writes public.search_runs. Places capped at 800 calls per month.
+      max_concurrent_runs: 3
+      queue:
+        enabled: true
+      timeout_seconds: 1800
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tags:
+        project: project1
+        layer: landing
+      parameters:
+        - name: mode
+          default: youtube
+        - name: keyword
+          default: ${var.search_keyword}
+        - name: max_results
+          default: ${var.search_max_results}
+        - name: order
+          default: ${var.search_order}
+        - name: location
+          default: "10.7769,106.7009,20000"
+        - name: included_type
+          default: ""
+        - name: dry_run
+          default: ${var.dry_run}
+      tasks:
+        - task_key: search
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/run_search.ipynb
+            base_parameters:
+              databricks_run_id: "{{job.run_id}}"
+          timeout_seconds: 1800

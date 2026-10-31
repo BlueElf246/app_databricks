@@ -16,7 +16,9 @@ Usage:
 """
 import argparse
 
-from database import APP_SCHEMA, get_connection, upsert_channels, upsert_videos
+from database import APP_SCHEMA, get_connection, init_db, upsert_channels, upsert_videos
+
+SOURCE = "refresh_daily"
 from youtube_client import get_channels, get_video_details
 
 BATCH_SIZE = 50  # max ids per videos.list / channels.list call
@@ -86,11 +88,12 @@ def main(argv: list[str] | None = None) -> dict[str, int]:
     if args.dry_run:
         print("dry run: nothing written")
     else:
+        init_db()  # adds the source column on first use
         # Channels first: videos.channel_id references channels.
         for batch in _batches(channels):
-            upsert_channels(batch)
+            upsert_channels(batch, source=SOURCE)
         for batch in _batches(videos):
-            upsert_videos(batch)
+            upsert_videos(batch, source=SOURCE)
         print(f"written: {len(channels)} channels, {len(videos)} videos")
     return {"channels": len(channels), "videos": len(videos)}
 

@@ -29,16 +29,16 @@ variables:
     description: "App name: lowercase letters, digits, and hyphens; maximum 30 characters"
     default: yt-search-${workspace.current_user.domain_friendly_name}
   dry_run:
-    description: "true = the refresh step calls the YouTube API and runs the guard but writes nothing to Postgres"
+    description: "true = refresh and search call the APIs but write nothing to Postgres (dev and prod share one Lakebase)"
     default: "true"
   search_keyword:
-    description: Keyword the daily search task sends to the YouTube search API
+    description: Default keyword of the on-demand search job (project1_search)
     default: "quán ăn Hồ Chí Minh"
   search_max_results:
-    description: "Number of results the daily search task requests (1-50)"
+    description: "Default number of results of the search job (youtube 1-50, places 1-60)"
     default: "10"
   search_order:
-    description: "Sort order for the daily search task: relevance, date, or viewCount"
+    description: "Default YouTube sort order of the search job: relevance, date, or viewCount"
     default: relevance
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule

@@ -17,3 +17,8 @@ resources:
           sql_warehouse:
             id: ${var.warehouse_id}
             permission: CAN_USE
+        # Search ingest page: runs the on-demand search job with the form's parameters
+        - name: search-job
+          job:
+            id: ${resources.jobs.project1_search.id}
+            permission: CAN_MANAGE_RUN
