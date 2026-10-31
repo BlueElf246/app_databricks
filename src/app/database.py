@@ -243,6 +243,39 @@ def init_db() -> None:
                 """
             )
 
+            # Channels whose new uploads are listed every day (auto_search source A, playlistItems.list
+            # = 1 unit instead of search.list = 100); filled from gold.dim_video food reviews.
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS followed_channels (
+                    channel_id          TEXT PRIMARY KEY,
+                    channel_title       TEXT,
+                    food_review_videos  INT NOT NULL DEFAULT 0,
+                    active              BOOLEAN NOT NULL DEFAULT TRUE,
+                    last_checked_at     TIMESTAMPTZ,
+                    last_new_videos     INT,
+                    total_new_videos    INT NOT NULL DEFAULT 0,
+                    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+
+            # One row per video whose comments the daily job fetched (fetch_comments task),
+            # so a video is fetched again only after COMMENT_REFETCH_DAYS.
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS comment_fetches (
+                    video_id            TEXT PRIMARY KEY,
+                    last_fetched_at     TIMESTAMPTZ NOT NULL,
+                    comments_fetched    INT NOT NULL DEFAULT 0,
+                    status              TEXT NOT NULL,
+                    error               TEXT,
+                    fetches             INT NOT NULL DEFAULT 1
+                )
+                """
+            )
+
             # Google Places found by Text Search: one row per place, latest values (UPSERT).
             cur.execute(
                 """
@@ -705,4 +738,118 @@ def get_saved_videos(
         "total": total,
         "total_pages": total_pages,
         "items": [dict(zip(columns, row)) for row in rows],
-    }
+    }
+
+
+# --- auto_search source A: followed food channels --------------------------------------------
+
+def upsert_followed_channels(channels: list[dict[str, Any]]) -> None:
+    """Add channels (channel_id, channel_title, food_review_videos); existing ones keep their history."""
+    if not channels:
+        return
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            cur.executemany(
+                """
+                INSERT INTO followed_channels (channel_id, channel_title, food_review_videos)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (channel_id) DO UPDATE SET
+                    channel_title = EXCLUDED.channel_title,
+                    food_review_videos = EXCLUDED.food_review_videos,
+                    updated_at = NOW()
+                WHERE followed_channels.food_review_videos IS DISTINCT FROM EXCLUDED.food_review_videos
+                   OR followed_channels.channel_title IS DISTINCT FROM EXCLUDED.channel_title
+                """,
+                [(c["channel_id"], c.get("channel_title"), int(c.get("food_review_videos") or 0)) for c in channels],
+            )
+        conn.commit()
+
+
+def due_followed_channels(limit: int) -> list[dict[str, Any]]:
+    """Active channels, never checked first, then the longest unchecked; most food reviews first on ties."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            cur.execute(
+                """
+                SELECT channel_id, channel_title, food_review_videos, last_checked_at
+                FROM followed_channels
+                WHERE active
+                ORDER BY last_checked_at NULLS FIRST, food_review_videos DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            columns = [d.name for d in cur.description]
+            return [dict(zip(columns, r)) for r in cur.fetchall()]
+
+
+def record_channel_check(channel_id: str, new_videos: int) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            cur.execute(
+                """
+                UPDATE followed_channels SET last_checked_at = NOW(), last_new_videos = %s,
+                    total_new_videos = total_new_videos + %s, updated_at = NOW()
+                WHERE channel_id = %s
+                """,
+                (new_videos, new_videos, channel_id),
+            )
+        conn.commit()
+
+
+# --- fetch_comments task ---------------------------------------------------------------------
+
+def videos_to_fetch_comments(video_ids: list[str], limit: int, refetch_days: int) -> list[dict[str, Any]]:
+    """Of the given videos, those with comments that were never fetched or fetched > refetch_days ago.
+
+    Never fetched first, then most viewed. Videos with comment_count = 0 are skipped (no unit spent).
+    """
+    if not video_ids:
+        return []
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            try:
+                cur.execute("SELECT 1 FROM comment_fetches LIMIT 0")
+                fetches = "comment_fetches"
+            except psycopg.errors.UndefinedTable:  # dry run before the first real run created it
+                conn.rollback()
+                cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+                fetches = ("(SELECT NULL::text AS video_id, NULL::timestamptz AS last_fetched_at "
+                           "WHERE false)")
+            cur.execute(
+                f"""
+                SELECT v.video_id, v.title, v.comment_count, f.last_fetched_at
+                FROM videos v
+                LEFT JOIN {fetches} f ON f.video_id = v.video_id
+                WHERE v.video_id = ANY(%s)
+                  AND COALESCE(v.comment_count, 1) > 0
+                  AND (f.video_id IS NULL OR f.last_fetched_at < NOW() - make_interval(days => %s))
+                ORDER BY (f.video_id IS NULL) DESC, v.view_count DESC NULLS LAST
+                LIMIT %s
+                """,
+                (video_ids, refetch_days, limit),
+            )
+            columns = [d.name for d in cur.description]
+            return [dict(zip(columns, r)) for r in cur.fetchall()]
+
+
+def record_comment_fetch(video_id: str, comments_fetched: int, status: str, error: str | None = None) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            cur.execute(
+                """
+                INSERT INTO comment_fetches (video_id, last_fetched_at, comments_fetched, status, error)
+                VALUES (%s, NOW(), %s, %s, %s)
+                ON CONFLICT (video_id) DO UPDATE SET
+                    last_fetched_at = NOW(), comments_fetched = EXCLUDED.comments_fetched,
+                    status = EXCLUDED.status, error = EXCLUDED.error,
+                    fetches = comment_fetches.fetches + 1
+                """,
+                (video_id, comments_fetched, status, (error or None) and error[:2000]),
+            )
+        conn.commit()

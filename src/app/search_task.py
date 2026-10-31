@@ -297,6 +297,119 @@ def run_auto(
     return {"searches": len(done), "new_videos": new_videos, "stopped": stopped, "keywords": done}
 
 
+CHANNEL_SOURCE = "search_channel"  # new uploads of followed food channels (auto_search source A)
+CHANNEL_FIRST_LOOKBACK_DAYS = 90    # first check of a channel: keep uploads of the last 90 days
+CHANNEL_OVERLAP_DAYS = 2            # later checks: uploads since the previous check minus 2 days
+
+
+def run_channel_uploads(
+    channels: list[dict[str, Any]],
+    limit: int = 100,
+    dry_run: bool = False,
+    databricks_run_id: int | None = None,
+) -> dict[str, Any]:
+    """auto_search source A: list the newest uploads of food channels we already know.
+
+    channels: channel_id, channel_title, food_review_videos (from gold.dim_video, classified food reviews).
+    One playlistItems.list call (1 unit, 50 newest uploads) per channel, then videos.list for the new
+    videos only (1 unit per 50). Writes videos with source search_channel, one followed_channels
+    update per channel and one search_runs row (mode channel). Never raises: errors are reported.
+    """
+    from datetime import timedelta
+
+    from database import (
+        due_followed_channels,
+        record_channel_check,
+        upsert_followed_channels,
+    )
+    from youtube_client import YouTubeClientError, get_channel_uploads, get_video_details, is_quota_error
+
+    run: dict[str, Any] = {
+        "search_run_id": str(uuid.uuid4()),
+        "mode": "channel",
+        "keyword": "",
+        "params": {"limit": limit, "first_lookback_days": CHANNEL_FIRST_LOOKBACK_DAYS},
+        "source": CHANNEL_SOURCE,
+        "databricks_run_id": databricks_run_id,
+        "started_at": datetime.now(timezone.utc),
+        "api_calls": 0,
+        "result_count": 0,
+        "new_results": 0,
+    }
+    if dry_run:  # nothing is written, so take the input list as is
+        due = sorted(channels, key=lambda c: -(c.get("food_review_videos") or 0))[:limit]
+    else:
+        init_db()
+        upsert_followed_channels(channels)
+        due = due_followed_channels(limit)
+    run["keyword"] = f"uploads of {len(due)} channel(s)"
+    print(f"channel uploads: {len(channels)} food channel(s) known, {len(due)} checked today")
+
+    now = datetime.now(timezone.utc)
+    new_by_channel: dict[str, list[str]] = {}
+    checked, errors_in_row, stopped = [], 0, None
+    for ch in due:
+        last = ch.get("last_checked_at")
+        cutoff = (last - timedelta(days=CHANNEL_OVERLAP_DAYS)) if last else now - timedelta(days=CHANNEL_FIRST_LOOKBACK_DAYS)
+        try:
+            uploads = get_channel_uploads(ch["channel_id"])
+            run["api_calls"] += 1
+            errors_in_row = 0
+        except YouTubeClientError as error:
+            if is_quota_error(error):
+                stopped = "youtube quota"
+                print("⏸️ YouTube quota used up: stop, the rest runs tomorrow")
+                break
+            errors_in_row += 1
+            print(f"⚠️ {ch.get('channel_title') or ch['channel_id']}: {str(error.detail)[:300]}")
+            if errors_in_row >= 3:
+                stopped = "3 errors in a row"
+                break
+            continue
+        recent = [
+            u["video_id"] for u in uploads
+            if u.get("published_at") and datetime.fromisoformat(u["published_at"].replace("Z", "+00:00")) >= cutoff
+        ]
+        known = existing_ids("videos", "video_id", recent) if recent else set()
+        new_ids = [vid for vid in recent if vid not in known]
+        run["result_count"] += len(recent)
+        new_by_channel[ch["channel_id"]] = new_ids
+        checked.append({"channel": ch.get("channel_title") or ch["channel_id"], "recent": len(recent), "new_videos": len(new_ids)})
+
+    all_new = list(dict.fromkeys(vid for ids in new_by_channel.values() for vid in ids))
+    videos: list[dict[str, Any]] = []
+    try:
+        for i in range(0, len(all_new), 50):
+            details = get_video_details(all_new[i:i + 50])
+            run["api_calls"] += 1
+            for vid in all_new[i:i + 50]:
+                if vid in details:
+                    details[vid]["video_url"] = f"https://www.youtube.com/watch?v={vid}"
+                    videos.append(details[vid])
+    except YouTubeClientError as error:
+        stopped = stopped or ("youtube quota" if is_quota_error(error) else f"videos.list: {str(error.detail)[:200]}")
+        print(f"⚠️ videos.list stopped: {str(error.detail)[:300]}")
+    run["new_results"] = len(videos)
+    run["status"] = "ok" if videos else ("error" if stopped and not checked else "no_result")
+    run["error"] = stopped
+
+    print(f"channel uploads done: {len(checked)} channel(s), {run['result_count']} recent upload(s), "
+          f"{len(videos)} new video(s), {run['api_calls']} unit(s)" + (f", stopped: {stopped}" if stopped else ""))
+    if dry_run:
+        print("dry run: nothing written")
+    else:
+        saved = {v["video_id"] for v in videos}
+        upsert_videos(videos, source=CHANNEL_SOURCE)
+        for ch in due:
+            if ch["channel_id"] in new_by_channel:  # checked (not skipped by an error / quota stop)
+                record_channel_check(ch["channel_id"], sum(v in saved for v in new_by_channel[ch["channel_id"]]))
+        record_search_run(run)
+    top = [{"title": v.get("title"), "channel": v.get("channel_title"), "views": v.get("view_count"),
+            "url": v.get("video_url")} for v in videos[:10]]
+    return {"channels": len(checked), "recent_uploads": run["result_count"], "new_videos": len(videos),
+            "api_calls": run["api_calls"], "stopped": stopped, "top": top}
+
+
 def main(argv: list[str] | None = None) -> dict[str, int]:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("query", help="search keyword, e.g. \"quán ăn Hồ Chí Minh\"")
