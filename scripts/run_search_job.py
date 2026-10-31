@@ -8,9 +8,9 @@ DATABRICKS_CLIENT_SECRET are set and the script gets the token itself. Host: env
 DATABRICKS_HOST, default the AWS workspace below. Standard library only.
 
 Usage:
-    python scripts/run_search_job.py "quán sushi"                      # places, dry run, 20 results
+    python scripts/run_search_job.py "quán sushi"                      # places, 20 results, saved to Lakebase
     python scripts/run_search_job.py "phở" --mode youtube --max-results 10
-    python scripts/run_search_job.py "quán sushi" --save              # dry_run=false: writes Lakebase
+    python scripts/run_search_job.py "quán sushi" --dry-run           # call the API, write nothing
     python scripts/run_search_job.py "quán sushi" --target prod      # job without the "[dev] " prefix
 """
 import argparse
@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("keyword")
     parser.add_argument("--mode", choices=["places", "youtube"], default="places")
     parser.add_argument("--max-results", type=int, default=20)
-    parser.add_argument("--save", action="store_true", help="dry_run=false: write the results to Lakebase")
+    parser.add_argument("--dry-run", action="store_true", help="call the API but write nothing (testing a new feature)")
     parser.add_argument("--target", choices=["dev", "prod"], default="dev")
     parser.add_argument("--timeout", type=int, default=900, help="seconds to wait for the run")
     args = parser.parse_args(argv)
@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
         "mode": args.mode,
         "keyword": args.keyword,
         "max_results": str(args.max_results),
-        "dry_run": "false" if args.save else "true",
+        "dry_run": "true" if args.dry_run else "false",
     }
     run_id = _api(token, "POST", "jobs/run-now", {"job_id": job_id, "job_parameters": params})["run_id"]
     print(f"run {run_id} started: {params}", flush=True)

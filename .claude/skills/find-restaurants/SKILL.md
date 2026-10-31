@@ -13,7 +13,8 @@ say so and stop.
 1. Pick the mode: `places` (Google Maps, default) or `youtube` when datle says YouTube / video.
 2. Run from the repo root:
    `python scripts/run_search_job.py "<keyword exactly as typed>" [--mode youtube] [--max-results N]`
-   - Dry run by default (nothing written to Lakebase). Add `--save` only when datle says "lưu" / save.
+   - Results are saved to Lakebase by default (datle, 31/10). Add `--dry-run` only when datle asks
+     for a dry run / "không lưu", or when testing a new feature.
    - `--target prod` only when datle asks for prod.
 3. Reply in Vietnamese: the run link, how many results, and the top 10
    (Places: name · rating (reviews) · price · address; YouTube: title · channel · views).

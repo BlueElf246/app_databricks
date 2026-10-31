@@ -1,6 +1,6 @@
 # Databricks Asset Bundle: Project 1 — YouTube restaurant search app + Kimball medallion pipeline.
 #   databricks bundle validate --strict            # dev (default)
-#   databricks bundle deploy                       # dev: prod.dev_* schemas, "[dev]" job, schedule paused, refresh dry run
+#   databricks bundle deploy                       # dev: prod.dev_* schemas, "[dev]" job, schedule paused
 #   databricks bundle deploy -t prod               # prod: prod.bronze / silver / gold, real names
 #
 # dev does not use `mode: development`: that mode renames UC schemas to dev_<user>_*, and dev
@@ -29,8 +29,8 @@ variables:
     description: "App name: lowercase letters, digits, and hyphens; maximum 30 characters"
     default: yt-search-${workspace.current_user.domain_friendly_name}
   dry_run:
-    description: "true = refresh and search call the APIs but write nothing to Postgres (dev and prod share one Lakebase)"
-    default: "true"
+    description: "true = refresh and search call the APIs but write nothing to Postgres. Default false (datle 31/10); set true only to test a new feature (dev and prod share one Lakebase)"
+    default: "false"
   search_keyword:
     description: Default keyword of the on-demand search job (project1_search)
     default: "quán ăn Hồ Chí Minh"
@@ -72,7 +72,6 @@ targets:
       schema_prefix: ""
       job_name_prefix: ""
       app_name: youtube-restaurant-search
-      dry_run: "false"
       # Set to UNPAUSED once the secret youtube/api_key exists and a dry run passed.
       schedule_pause_status: PAUSED
     resources:

@@ -27,7 +27,7 @@ if not job_id:
 
 MODES = {"youtube": "YouTube", "places": "Google Maps (Places API)"}
 WRITE_OPTIONS = {
-    "default": "Theo mặc định của job (dev: dry run, prod: ghi thật)",
+    "default": "Theo mặc định của job (ghi vào Lakebase)",
     "true": "Dry run: gọi API, không ghi",
     "false": "Ghi vào Lakebase",
 }
