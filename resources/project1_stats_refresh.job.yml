@@ -1,7 +1,7 @@
-# Intraday stats refresh (2026-11-01, datle chose "4 runs/day, keep the daily grain"):
-# re-reads view / like / comment counts of every saved video and channel at 07:00, 13:00 and 19:00
-# (the daily job covers 01:00) and rebuilds only the tables that show them, so the dashboard is at most
-# ~6 h old. The grain stays video x day: each run overwrites today's row (latest read of the day wins);
+# Intraday stats refresh (2026-11-01, datle chose "4 runs/day, keep the daily grain"; times moved to
+# 07:00 / 09:00 / 21:00 the same day): re-reads view / like / comment counts of every saved video and
+# channel (the daily job covers 01:00) and rebuilds only the tables that show them, so the dashboard is at most
+# ~12 h old (longest gap 09:00 -> 21:00). The grain stays video x day: each run overwrites today's row (latest read of the day wins);
 # Bronze keeps every read, so an hourly grain can be rebuilt later.
 # Measured 2026-11-01: likes / comments change every minute, view counts move in batches hours apart,
 # so hourly runs would mostly re-read the same views.
@@ -9,12 +9,12 @@
 resources:
   jobs:
     project1_stats_refresh:
-      name: ${var.job_name_prefix}Project 1 — YouTube stats refresh (07/13/19h)
+      name: ${var.job_name_prefix}Project 1 — YouTube stats refresh (07/09/21h)
       description: >-
         refresh_daily → bronze_ingest → stg_channels / stg_videos → gold_snapshot_facts → agg_restaurant_daily_views → agg_restaurant_ranking.
         Only the snapshot facts and the view aggregates; new videos, dims, comments, transcripts and checks stay in the daily job.
       schedule:
-        quartz_cron_expression: "0 0 7,13,19 * * ?"
+        quartz_cron_expression: "0 0 7,9,21 * * ?"
         timezone_id: Asia/Ho_Chi_Minh
         pause_status: ${var.schedule_pause_status}
       max_concurrent_runs: 1
