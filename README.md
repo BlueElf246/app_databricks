@@ -134,11 +134,13 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
 | Silver | `stg_osm_restaurants` | OSM element | Quán ăn / cafe ở TP.HCM từ OpenStreetMap; bổ sung cuisine, giờ mở cửa cho `dim_restaurant` |
 | Silver | `stg_comment_sentiment` | `comment_id` | `ai_query`: positive / negative / neutral + có nói về món ăn không |
 | Silver | `stg_restaurant_place_reviews` | `review_id` | ≤ 5 Google review mỗi lần đọc Place Details, tích lũy qua các lần đọc lại |
+| Silver | `stg_place_rating_reads` | `place_id` × `read_at` × `source` | Mọi lần đọc rating Google (Place Details + Text Search thủ công), append-only, không ghi đè: lịch sử rating |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
-| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
+| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then the top 20 by `legit_score` (re-read every 7 days, rating history), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
 | Gold | `dim_restaurant` | one row per version | SCD 2 on address / location; name, `cuisine`, `price_band`, `google_rating`, `google_rating_count` are type 1; dedup = Google `place_id`, else normalized name + district |
 | Gold | `fact_video_daily_snapshot`, `fact_channel_daily_snapshot` | id × snapshot day | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` additive |
+| Gold | `fact_restaurant_rating_daily_snapshot` | place × snapshot day | `CREATE OR REPLACE` from `stg_place_rating_reads`; dense (last read carried forward); `rating` / `rating_count` semi-additive, `rating_change` / `rating_count_gained` additive, `days_since_read` |
 | Gold | `fact_comment` / `fact_search_hit` | comment / run × keyword × video | MERGE / insert-only MERGE |
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
 | Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city); `legit_score` 0–100 from Bayesian Google rating, review count, distinct channels, like rate, views 30d + `legit_label` |
@@ -149,14 +151,15 @@ Thêm vào Gold: `fact_google_review` (review × quán), `agg_restaurant_daily_v
 
 ### Daily job
 
-Job **"[dev] Project 1 — YouTube restaurants medallion (daily)"** (`resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, email khi lỗi, 25 tasks. Một task lỗi thì các task phía sau dừng:
+Job **"[dev] Project 1 — YouTube restaurants medallion (daily)"** (`resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, email khi lỗi, 27 tasks. Một task lỗi thì các task phía sau dừng:
 
 ```
 auto_search → refresh_daily → fetch_comments → bronze_ingest
 osm_ingest → stg_osm_restaurants  (song song; chỉ gọi Overpass 1 lần / tuần)
 bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results / stg_places
 stg_videos → stg_video_classification → gold_dims → gold_facts
-gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details
+gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details → stg_place_rating_reads
+stg_place_rating_reads + gold_restaurants → gold_rating_snapshot → run_summary
 gold_restaurants (dims + place details + places + OSM) → gold_checks → gold_agg_daily_views
 stg_comment_sentiment → gold_agg_comments
 gold_agg_daily_views + gold_agg_comments → gold_agg_ranking → run_summary
@@ -184,7 +187,7 @@ Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Pl
 | YouTube Data API v3 | auto_search, refresh_daily (01h + stats refresh 07/13/19h), fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200); stats refresh thêm ~3 × 280 = ~840 unit / ngày |
 | Google Places Text Search Enterprise (đủ trường) | search job (search tay) | 800 call / tháng | Free 1,000 / tháng |
 | Google Places Text Search Pro (không rating / giá / giờ / điện thoại / web) | auto_search (places, 40 keyword / ngày), stg_restaurant_geocode | auto ≤ 1,500 / tháng; geocode ≤ 100 / ngày | Free 5,000 / tháng (chung); Place Details bù các trường thiếu |
-| Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |
+| Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày (top 20 legit: mỗi 7 ngày) | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |
 | Gemini API (transcript) | stg_video_transcripts | ≤ 20 call / run, ≤ 7 h video / ngày | Free tier; hay gặp 503 / 429 |
 | OpenStreetMap Overpass | osm_ingest | 1 query / tuần | Miễn phí |
 | Databricks `ai_query` (Qwen3 80B) | stg_video_classification, stg_restaurant_mentions (≤ 150 video / run), stg_comment_sentiment (≤ 5,000 comment / run) | | **Tính phí** (Foundation Model API + serverless), không có free tier |
