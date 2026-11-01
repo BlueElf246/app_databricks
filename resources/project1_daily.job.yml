@@ -8,6 +8,7 @@ resources:
       name: ${var.job_name_prefix}Project 1 — auto search + medallion (daily 01h)
       description: >-
         auto_search → refresh → fetch_comments → Bronze → Silver → Gold dims → facts → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
+        stg_restaurant_place_details → stg_place_rating_reads → gold_rating_snapshot (Google rating per restaurant x day).
         osm_ingest (weekly OpenStreetMap snapshot, skipped on the other days) → stg_osm_restaurants feeds gold_restaurants.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
@@ -163,6 +164,13 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_place_details.ipynb
           timeout_seconds: 1800
 
+        # Every Google rating read (Place Details + manual Text Search), append-only: rating history
+        - task_key: stg_place_rating_reads
+          depends_on: [{task_key: stg_restaurant_place_details}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/place_rating_reads.ipynb
+          timeout_seconds: 900
+
         - task_key: gold_dims
           depends_on:
             - task_key: stg_channels
@@ -189,6 +197,15 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/gold/restaurants.ipynb
           timeout_seconds: 1800
+
+        # Google rating per restaurant x day (dense, last read carried forward), like the YouTube daily snapshots
+        - task_key: gold_rating_snapshot
+          depends_on:
+            - task_key: stg_place_rating_reads
+            - task_key: gold_restaurants
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/fact_restaurant_rating_snapshot.ipynb
+          timeout_seconds: 900
 
         - task_key: gold_checks
           depends_on:
@@ -237,7 +254,9 @@ resources:
         # Always runs (even after a failure): row counts + top 10 as JSON in the run output,
         # so a chat session can review the run via the Jobs API (runs/get-output).
         - task_key: run_summary
-          depends_on: [{task_key: gold_agg_ranking}]
+          depends_on:
+            - task_key: gold_agg_ranking
+            - task_key: gold_rating_snapshot
           run_if: ALL_DONE
           notebook_task:
             notebook_path: ../src/notebooks/gold/run_summary.ipynb
