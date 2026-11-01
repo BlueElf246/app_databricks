@@ -49,8 +49,8 @@ variables:
     description: Results per auto_search keyword (1-50)
     default: "25"
   auto_places_count:
-    description: "Google Maps keywords auto_search searches per day (1 Text Search call each; auto share capped at 450 of the 800 / month)"
-    default: "15"
+    description: "Google Maps keywords auto_search searches per day (1 Text Search Pro call each; Pro calls capped at 1,500 / month)"
+    default: "40"
   auto_channel_limit:
     description: "Followed food channels whose new uploads auto_search lists per day (playlistItems.list, 1 unit each)"
     default: "100"

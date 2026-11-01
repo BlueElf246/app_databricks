@@ -5,9 +5,11 @@ YouTube search API, pulls full video details and channels, upserts videos +
 channels and appends search_results.
 
 mode places: Google Places Text Search (results like a search on Google Maps),
-upserts places and appends place_search_results. Every page is one billed
-Text Search Enterprise call, so calls are counted per Vietnam month in
-search_runs and capped at PLACES_MONTHLY_CALL_LIMIT.
+upserts places and appends place_search_results. Every page is one billed call,
+counted per SKU and Vietnam month in search_runs (params.sku):
+- manual searches: Text Search Enterprise (all fields), capped at PLACES_MONTHLY_CALL_LIMIT;
+- auto_search: Text Search Pro (no rating / price / hours / phone / website, filled later by
+  Place Details), capped at PLACES_PRO_MONTHLY_CALL_LIMIT (2026-11-01).
 
 Every run that is not a dry run writes one search_runs row (also when it fails).
 
@@ -41,10 +43,14 @@ from database import (
 MODES = ("youtube", "places")
 SOURCE = {"youtube": "search_youtube", "places": "search_places"}
 AUTO_SOURCE = "search_auto"  # keywords picked by the system (auto_search task of the daily job)
-PLACES_MONTHLY_CALL_LIMIT = 800  # under the 1,000 free Text Search Enterprise calls per month (all sources)
-AUTO_PLACES_PER_DAY = 15         # auto_search Places keywords per day (1 page = 20 places = 1 call each)
+PLACES_MONTHLY_CALL_LIMIT = 800  # Enterprise calls / month: under the 1,000 free Text Search Enterprise calls
+# Pro calls / month of the search job (auto_search). Text Search Pro has 5,000 free calls / month, shared with
+# stg_restaurant_geocode (capped at 100 / day = at most ~3,100 / month): 3,100 + 1,500 stays under 5,000.
+PLACES_PRO_MONTHLY_CALL_LIMIT = 1500
+PLACES_MONTHLY_LIMITS = {"enterprise": PLACES_MONTHLY_CALL_LIMIT, "pro": PLACES_PRO_MONTHLY_CALL_LIMIT}
+AUTO_PLACES_SKU = "pro"          # auto_search finds places with Pro calls; Place Details fills the rest
+AUTO_PLACES_PER_DAY = 40         # auto_search Places keywords per day (1 page = 20 places = 1 call each)
 PLACES_PAGE_RESULTS = 20         # one Text Search page
-AUTO_PLACES_MONTHLY_LIMIT = 450  # auto_search share of the 800; manual searches keep the rest (~350)
 DEFAULT_LOCATION = "10.7769,106.7009,20000"  # Ho Chi Minh City centre, 20 km bias
 
 
@@ -123,16 +129,19 @@ def _youtube(query: str, max_results: int, order: str, published_after, publishe
 
 
 def _places(query: str, max_results: int, location: str | None, included_type: str | None,
-            dry_run: bool, run: dict[str, Any]) -> dict[str, int]:
-    from places_client import PAGE_SIZE, parse_location, search_places, to_row
+            dry_run: bool, run: dict[str, Any], sku: str = "enterprise") -> dict[str, int]:
+    from places_client import PAGE_SIZE, SKUS, parse_location, search_places, to_row
 
-    used = places_calls_this_month()
-    budget = PLACES_MONTHLY_CALL_LIMIT - used
+    if sku not in SKUS:
+        raise ValueError(f"places sku must be one of {SKUS}, got {sku!r}")
+    limit = PLACES_MONTHLY_LIMITS[sku]
+    used = places_calls_this_month(sku=sku)
+    budget = limit - used
     if dry_run:
         budget = min(budget, 1)  # dry runs are not recorded, so they get one page only
-    print(f"Places calls this month: {used}/{PLACES_MONTHLY_CALL_LIMIT} · this run may call: {max(budget, 0)}")
+    print(f"Places {sku} calls this month: {used}/{limit} · this run may call: {max(budget, 0)}")
     if budget <= 0:
-        raise QuotaReached(f"Places monthly cap reached ({used}/{PLACES_MONTHLY_CALL_LIMIT})")
+        raise QuotaReached(f"Places {sku} monthly cap reached ({used}/{limit})")
 
     from places_client import PlacesClientError
 
@@ -143,6 +152,7 @@ def _places(query: str, max_results: int, location: str | None, included_type: s
             location_bias=parse_location(location),
             included_type=included_type or None,
             max_calls=budget,
+            sku=sku,
         )
     except PlacesClientError as error:
         # 429 RESOURCE_EXHAUSTED = the GCP project's own "SearchTextRequest per day" quota (shared with
@@ -161,7 +171,7 @@ def _places(query: str, max_results: int, location: str | None, included_type: s
 
     if not dry_run and rows:
         source = run["source"]
-        upsert_places(rows, source=source)
+        upsert_places(rows, source=source, sku=sku)
         log_place_search_results(
             [
                 {
@@ -198,8 +208,12 @@ def run_search(
     databricks_run_id: int | None = None,
     source: str | None = None,
     keyword_origin: str = "manual",
+    places_sku: str = "enterprise",
 ) -> dict[str, int]:
-    """Search YouTube or Google Places and (unless dry_run) persist the results. Returns counts."""
+    """Search YouTube or Google Places and (unless dry_run) persist the results. Returns counts.
+
+    places_sku: "enterprise" (all fields, default) or "pro" (cheaper, no rating / price / hours / phone / website).
+    """
     query = query.strip()
     if not query:
         raise ValueError("query is empty")
@@ -213,7 +227,7 @@ def run_search(
     if mode == "youtube":
         params.update(order=order, published_after=published_after, published_before=published_before)
     else:
-        params.update(location=location, included_type=included_type)
+        params.update(location=location, included_type=included_type, sku=places_sku)
     run: dict[str, Any] = {
         "search_run_id": str(uuid.uuid4()),
         "mode": mode,
@@ -230,7 +244,7 @@ def run_search(
         if mode == "youtube":
             counts = _youtube(query, max_results, order, published_after, published_before, dry_run, run)
         else:
-            counts = _places(query, max_results, location, included_type, dry_run, run)
+            counts = _places(query, max_results, location, included_type, dry_run, run, sku=places_sku)
         run["status"] = "ok" if run["result_count"] else "no_result"
     except QuotaReached as error:
         run["status"], run["error"] = "quota", str(error)
@@ -265,9 +279,8 @@ def run_auto(
     YouTube: `limit` keywords. First run of a keyword: order=relevance (best videos). Later runs:
     order=date and publishedAfter = day of the previous search, so only new uploads cost quota.
     A YouTube quota error stops the loop without failing; 3 errors in a row stop it too.
-    Google Maps (places): `places_limit` keywords, 1 page (20 places, 1 call) each, while the
-    auto_search calls this month stay under AUTO_PLACES_MONTHLY_LIMIT (and all calls under
-    PLACES_MONTHLY_CALL_LIMIT, checked in _places).
+    Google Maps (places): `places_limit` keywords, 1 page (20 places, 1 Text Search Pro call) each,
+    while the Pro calls this month stay under PLACES_PRO_MONTHLY_CALL_LIMIT (checked in _places).
     """
     from keywords import due_keywords, plan
     from youtube_client import YouTubeClientError
@@ -317,16 +330,21 @@ def run_auto(
 
 
 def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | None = None) -> dict[str, Any]:
-    """auto_search on Google Maps: due places keywords, 1 page each, within the auto monthly share."""
+    """auto_search on Google Maps: due places keywords, 1 Text Search Pro page each, within the Pro monthly cap.
+
+    Pro calls return no rating / price / opening hours / phone / website; stg_restaurant_place_details
+    reads those later (Place Details) for the places that matter most.
+    """
     from keywords import due_keywords
 
     if limit <= 0:
         return {"searches": 0, "new_places": 0, "stopped": "disabled", "keywords": []}
-    used = places_calls_this_month(source=AUTO_SOURCE)
-    budget = min(limit, AUTO_PLACES_MONTHLY_LIMIT - used)
-    print(f"auto_search Places: {used}/{AUTO_PLACES_MONTHLY_LIMIT} auto calls this month · today up to {max(budget, 0)}")
+    used = places_calls_this_month(sku=AUTO_PLACES_SKU)
+    budget = min(limit, PLACES_PRO_MONTHLY_CALL_LIMIT - used)
+    print(f"auto_search Places ({AUTO_PLACES_SKU}): {used}/{PLACES_PRO_MONTHLY_CALL_LIMIT} calls this month · "
+          f"today up to {max(budget, 0)}")
     if budget <= 0:
-        return {"searches": 0, "new_places": 0, "stopped": "auto monthly cap", "keywords": []}
+        return {"searches": 0, "new_places": 0, "stopped": "pro monthly cap", "keywords": []}
     picked = due_keywords(budget, mode="places", verify_share=0)
     done, new_places, errors_in_row, stopped, errors = [], 0, 0, None, []
     for kw in picked:
@@ -340,6 +358,7 @@ def run_auto_places(limit: int, dry_run: bool = False, databricks_run_id: int | 
                 databricks_run_id=databricks_run_id,
                 source=AUTO_SOURCE,
                 keyword_origin=kw["origin"],
+                places_sku=AUTO_PLACES_SKU,
             )
         except QuotaReached as error:
             stopped = str(error)

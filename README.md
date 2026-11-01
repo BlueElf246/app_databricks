@@ -135,7 +135,7 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
 | Silver | `stg_restaurant_place_reviews` | `review_id` | ≤ 5 Google review mỗi lần đọc Place Details, tích lũy qua các lần đọc lại |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
-| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, photo) of geocoded places, re-read every 30 days, max 900 calls per month (free Enterprise tier) |
+| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
 | Gold | `dim_restaurant` | one row per version | SCD 2 on address / location; name, `cuisine`, `price_band`, `google_rating`, `google_rating_count` are type 1; dedup = Google `place_id`, else normalized name + district |
 | Gold | `fact_video_daily_snapshot`, `fact_channel_daily_snapshot` | id × snapshot day | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` additive |
 | Gold | `fact_comment` / `fact_search_hit` | comment / run × keyword × video | MERGE / insert-only MERGE |
@@ -170,7 +170,8 @@ Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Pl
 | Nguồn | Task | Giới hạn trong code | Quota / chi phí |
 | --- | --- | --- | --- |
 | YouTube Data API v3 | auto_search, refresh_daily, fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200) |
-| Google Places Text Search | auto_search (places), search job, stg_restaurant_geocode | 800 call / tháng (auto ≤ 450); geocode ≤ 100 / ngày | Free theo tháng, nhưng GCP project còn giới hạn **"SearchTextRequest per day"** |
+| Google Places Text Search Enterprise (đủ trường) | search job (search tay) | 800 call / tháng | Free 1,000 / tháng |
+| Google Places Text Search Pro (không rating / giá / giờ / điện thoại / web) | auto_search (places, 40 keyword / ngày), stg_restaurant_geocode | auto ≤ 1,500 / tháng; geocode ≤ 100 / ngày | Free 5,000 / tháng (chung); Place Details bù các trường thiếu |
 | Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |
 | Gemini API (transcript) | stg_video_transcripts | ≤ 20 call / run, ≤ 7 h video / ngày | Free tier; hay gặp 503 / 429 |
 | OpenStreetMap Overpass | osm_ingest | 1 query / tuần | Miễn phí |
@@ -199,8 +200,8 @@ python refresh_daily.py             # write to Postgres
 
 ## Known limits
 
-- **Google reviews chưa có dữ liệu** (`stg_restaurant_place_reviews`, `fact_google_review` = 0): code đọc review từ 01/11 nhưng GCP project giới hạn "GetPlaceRequest per day" quá thấp, mỗi ngày chỉ được vài chục call. Tăng hạn mức ngày trong GCP Console → IAM & Admin → Quotas (Places API) để chạy hết ~250 quán chờ (vẫn trong 1,000 free / tháng).
-- Google Text Search cũng bị "SearchTextRequest per day": auto Places và geocode chỉ chạy được vài call mỗi ngày.
+- Quota ngày của Places API (100 / ngày) trước 01/11 là do billing account cũ của GCP project bị đóng; đã chuyển sang billing account đang hoạt động, giờ SearchTextRequest per day = 75,000. Giới hạn chi phí thật là các cap theo tháng trong code (bảng trên).
+- YouTube "Search Queries per day" = 100 (10,000 unit): không phụ thuộc billing, chỉ tăng được qua form audit của YouTube.
 - Transcript (Gemini free tier) thường bị 503 / 429, mới có 40 video có transcript.
 - `ai_query` tính phí theo token: là phần duy nhất của run không miễn phí.
 - `cuisine` / `price_band` lấy từ Google Places (và cuisine từ OSM): quán Google không match hiển thị `Chưa rõ`.
