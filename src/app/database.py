@@ -566,8 +566,11 @@ def existing_ids(table: str, column: str, ids: list[str]) -> set[str]:
             return {row[0] for row in cur.fetchall()}
 
 
-def places_calls_this_month(source: str | None = None) -> int:
-    """Places Text Search calls recorded this Vietnam calendar month (all runs, or one source)."""
+def places_calls_this_month(source: str | None = None, sku: str = "enterprise") -> int:
+    """Places Text Search calls of one SKU recorded this Vietnam calendar month (all runs, or one source).
+
+    The SKU is search_runs.params->>'sku'; runs recorded before it existed (2026-11-01) were all Enterprise.
+    """
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
@@ -576,20 +579,26 @@ def places_calls_this_month(source: str | None = None) -> int:
                     """
                 SELECT COALESCE(SUM(api_calls), 0) FROM search_runs
                 WHERE mode = 'places' AND (%s::text IS NULL OR source = %s)
+                  AND COALESCE(params->>'sku', 'enterprise') = %s
                   AND date_trunc('month', started_at AT TIME ZONE 'Asia/Ho_Chi_Minh')
                     = date_trunc('month', NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')
                 """,
-                    (source, source),
+                    (source, source, sku),
                 )
             except psycopg.errors.UndefinedTable:
                 return 0  # no run recorded yet (table is created by the first real run)
             return int(cur.fetchone()[0])
 
 
-def upsert_places(places: list[dict[str, Any]], source: str) -> None:
-    """Insert or update Google Places (latest values per place_id)."""
+def upsert_places(places: list[dict[str, Any]], source: str, sku: str = "enterprise") -> None:
+    """Insert or update Google Places (latest values per place_id).
+
+    sku "pro": the rows come from a Text Search Pro call, which has no rating / price / phone / website /
+    opening hours; those columns keep their stored value instead of being set to NULL.
+    """
     if not places:
         return
+    from places_client import ENTERPRISE_COLUMNS
 
     columns = [
         "place_id", "display_name", "formatted_address", "latitude", "longitude",
@@ -599,7 +608,13 @@ def upsert_places(places: list[dict[str, Any]], source: str) -> None:
         "regular_opening_hours", "raw",
     ]
     json_columns = {"regular_opening_hours", "raw"}
-    updates = ",\n                    ".join(f"{c} = EXCLUDED.{c}" for c in columns[1:])
+    keep = set(ENTERPRISE_COLUMNS) if sku == "pro" else set()
+    updates = ",\n                    ".join(
+        f"{c} = COALESCE(EXCLUDED.{c}, places.{c})" if c in keep
+        else "raw = COALESCE(places.raw, '{}'::jsonb) || EXCLUDED.raw" if c == "raw" and keep
+        else f"{c} = EXCLUDED.{c}"
+        for c in columns[1:]
+    )
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{APP_SCHEMA}"')

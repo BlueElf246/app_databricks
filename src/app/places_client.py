@@ -1,9 +1,17 @@
 """Google Places API (New) Text Search: find places like a search on Google Maps.
 
 One call returns one page of at most 20 places; a search asks for up to 3 pages
-(60 places), the most Text Search returns. The field mask includes rating,
-userRatingCount, priceLevel and priceRange, so every call is billed as
-Text Search Enterprise: callers must count calls (see search_task.py).
+(60 places), the most Text Search returns. Google bills a call at the highest
+SKU in its field mask, and each SKU has its own free calls per month, so there
+are two masks (callers count calls per SKU, see search_task.py):
+
+- "enterprise" (manual searches): adds rating, userRatingCount, priceLevel,
+  priceRange, websiteUri, nationalPhoneNumber, regularOpeningHours, so every
+  call is Text Search Enterprise (1,000 free calls / month).
+- "pro" (auto_search, added 2026-11-01): only Pro fields (id, name, address,
+  location, types, business status, Maps link), so every call is Text Search Pro
+  (5,000 free calls / month, shared with stg_restaurant_geocode). The missing
+  fields come later from Place Details (stg/restaurant_place_details).
 
 Key: env MAPS_API_KEY (set by the job notebook from secret maps/api_key), else
 the Databricks secret maps/api_key read through the SDK.
@@ -18,25 +26,37 @@ SEARCH_TEXT_URL = "https://places.googleapis.com/v1/places:searchText"
 PAGE_SIZE = 20
 MAX_PAGES = 3
 
-FIELD_MASK = ",".join(
-    [
-        "places.id",
-        "places.displayName",
-        "places.formattedAddress",
-        "places.location",
-        "places.primaryType",
-        "places.types",
-        "places.rating",
-        "places.userRatingCount",
-        "places.priceLevel",
-        "places.priceRange",
-        "places.businessStatus",
-        "places.googleMapsUri",
-        "places.websiteUri",
-        "places.nationalPhoneNumber",
-        "places.regularOpeningHours",
-        "nextPageToken",
-    ]
+PRO_FIELDS = [
+    "places.id",
+    "places.displayName",
+    "places.formattedAddress",
+    "places.location",
+    "places.primaryType",
+    "places.types",
+    "places.businessStatus",
+    "places.googleMapsUri",
+    "nextPageToken",
+]
+# Any one of these makes the call Text Search Enterprise
+ENTERPRISE_FIELDS = [
+    "places.rating",
+    "places.userRatingCount",
+    "places.priceLevel",
+    "places.priceRange",
+    "places.websiteUri",
+    "places.nationalPhoneNumber",
+    "places.regularOpeningHours",
+]
+SKUS = ("enterprise", "pro")
+FIELD_MASKS = {
+    "pro": ",".join(PRO_FIELDS),
+    "enterprise": ",".join(PRO_FIELDS + ENTERPRISE_FIELDS),
+}
+FIELD_MASK = FIELD_MASKS["enterprise"]  # default (manual searches)
+# Lakebase `places` columns that only an Enterprise call returns: a Pro call must not blank them
+ENTERPRISE_COLUMNS = (
+    "rating", "user_rating_count", "price_level", "price_range_start_vnd", "price_range_end_vnd",
+    "website_uri", "national_phone_number", "regular_opening_hours",
 )
 
 
@@ -72,8 +92,11 @@ def search_text_page(
     location_bias: dict[str, Any] | None = None,
     included_type: str | None = None,
     page_token: str | None = None,
+    sku: str = "enterprise",
 ) -> tuple[list[dict[str, Any]], str | None]:
-    """One Text Search call: (raw places, next page token or None)."""
+    """One Text Search call billed as `sku` ("enterprise" or "pro"): (raw places, next page token or None)."""
+    if sku not in SKUS:
+        raise ValueError(f"sku must be one of {SKUS}, got {sku!r}")
     body: dict[str, Any] = {
         "textQuery": query,
         "languageCode": "vi",
@@ -87,7 +110,7 @@ def search_text_page(
     if page_token:
         body["pageToken"] = page_token
 
-    headers = {"X-Goog-Api-Key": _api_key(), "X-Goog-FieldMask": FIELD_MASK}
+    headers = {"X-Goog-Api-Key": _api_key(), "X-Goog-FieldMask": FIELD_MASKS[sku]}
     try:
         response = httpx.post(SEARCH_TEXT_URL, json=body, headers=headers, timeout=30.0)
     except httpx.RequestError as error:
@@ -141,6 +164,7 @@ def search_places(
     location_bias: dict[str, Any] | None = None,
     included_type: str | None = None,
     max_calls: int = MAX_PAGES,
+    sku: str = "enterprise",
 ) -> tuple[list[dict[str, Any]], int]:
     """Page through Text Search: (raw places in Google's order, API calls made).
 
@@ -154,7 +178,7 @@ def search_places(
     while calls < pages:
         if token:
             time.sleep(2)  # a fresh page token can be rejected for a moment
-        page, token = search_text_page(query, location_bias, included_type, token)
+        page, token = search_text_page(query, location_bias, included_type, token, sku=sku)
         calls += 1
         places.extend(page)
         if not token:

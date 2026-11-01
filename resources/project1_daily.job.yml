@@ -150,10 +150,13 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_geocode.ipynb
           timeout_seconds: 1800
 
-        # Google Place Details (rating, price range, cuisine type, photo, up to 5 reviews) of matched places,
-        # each place re-read every 30 days; capped under the free Enterprise + Atmosphere calls per month
+        # Google Place Details (rating, price range, cuisine type, website, phone, opening hours, photo, up to
+        # 5 reviews) of matched places (re-read every 30 days), then of Google-only places that auto_search found
+        # with Text Search Pro (stg_places, re-read every 90 days); capped under the free calls per month
         - task_key: stg_restaurant_place_details
-          depends_on: [{task_key: stg_restaurant_geocode}]
+          depends_on:
+            - task_key: stg_restaurant_geocode
+            - task_key: stg_places
           notebook_task:
             notebook_path: ../src/notebooks/stg/restaurant_place_details.ipynb
           timeout_seconds: 1800
