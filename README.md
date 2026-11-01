@@ -18,6 +18,7 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 ├── resources/
 │   ├── project1_daily.job.yml         # Daily medallion job (25 tasks)
 │   ├── project1_search.job.yml        # On-demand search job (1 keyword, YouTube hoặc Google Places)
+│   ├── project1_stats_refresh.job.yml # Refresh view / like / comment lúc 07/13/19h (7 tasks)
 │   ├── restaurant_finder.dashboard.yml# AI/BI dashboard trên Gold
 │   ├── youtube_search.app.yml         # Streamlit app + resources (secret, SQL warehouse, search job)
 │   └── medallion.schemas.yml          # bronze / silver / gold schemas
@@ -163,13 +164,24 @@ gold_agg_daily_views + gold_agg_comments → gold_agg_ranking → run_summary
 
 Guards: `refresh_daily.py` dừng **trước khi ghi** nếu API trả 0 dòng hoặc > 20% counter = 0; mọi lần ghi là atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); mọi date key theo giờ Việt Nam. Các task gọi API ngoài (auto_search, fetch_comments, geocode, place details, transcripts) **không fail** khi hết quota: gặp HTTP 429 là dừng gọi, phần còn lại chờ run sau.
 
+### Stats refresh trong ngày
+
+Job **"[dev] Project 1 — YouTube stats refresh (07/13/19h)"** (`resources/project1_stats_refresh.job.yml`), 07:00, 13:00, 19:00 `Asia/Ho_Chi_Minh` (01:00 do daily job làm), email khi lỗi, 7 tasks:
+
+```
+refresh_daily → bronze_ingest → stg_channels / stg_videos → gold_snapshot_facts (facts.ipynb, facts=snapshots)
+→ gold_agg_daily_views → gold_agg_ranking
+```
+
+Grain vẫn là video × ngày: mỗi lần chạy ghi đè dòng của hôm nay (lần đọc mới nhất thắng); Bronze giữ mọi lần đọc. Video mới, dims, comment, transcript và checks vẫn chỉ chạy trong daily job (video mới tìm trong ngày có `video_key = -1` cho tới 01:00 hôm sau). Đo ngày 01/11: like / comment đổi gần như mỗi phút, view chỉ đổi theo đợt cách nhau vài giờ, nên không chạy theo giờ.
+
 Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Places API New). Job parameter `dry_run=true` gọi API nhưng không ghi.
 
 ### Nguồn dữ liệu và quota (giữ ở mức miễn phí)
 
 | Nguồn | Task | Giới hạn trong code | Quota / chi phí |
 | --- | --- | --- | --- |
-| YouTube Data API v3 | auto_search, refresh_daily, fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200) |
+| YouTube Data API v3 | auto_search, refresh_daily (01h + stats refresh 07/13/19h), fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200); stats refresh thêm ~3 × 280 = ~840 unit / ngày |
 | Google Places Text Search Enterprise (đủ trường) | search job (search tay) | 800 call / tháng | Free 1,000 / tháng |
 | Google Places Text Search Pro (không rating / giá / giờ / điện thoại / web) | auto_search (places, 40 keyword / ngày), stg_restaurant_geocode | auto ≤ 1,500 / tháng; geocode ≤ 100 / ngày | Free 5,000 / tháng (chung); Place Details bù các trường thiếu |
 | Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |

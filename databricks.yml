@@ -104,6 +104,13 @@ targets:
               level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
+        project1_stats_refresh:
+          # claude-search can run the intraday stats refresh from the Claude chat (dev only)
+          permissions:
+            - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
+              level: IS_OWNER
+            - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
+              level: CAN_MANAGE_RUN
 
   prod:
     mode: production

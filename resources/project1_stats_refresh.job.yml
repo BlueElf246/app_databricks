@@ -1,0 +1,87 @@
+# Intraday stats refresh (2026-11-01, datle chose "4 runs/day, keep the daily grain"):
+# re-reads view / like / comment counts of every saved video and channel at 07:00, 13:00 and 19:00
+# (the daily job covers 01:00) and rebuilds only the tables that show them, so the dashboard is at most
+# ~6 h old. The grain stays video x day: each run overwrites today's row (latest read of the day wins);
+# Bronze keeps every read, so an hourly grain can be rebuilt later.
+# Measured 2026-11-01: likes / comments change every minute, view counts move in batches hours apart,
+# so hourly runs would mostly re-read the same views.
+# YouTube quota: ~280 units per run (1 unit per 50 ids), no search calls.
+resources:
+  jobs:
+    project1_stats_refresh:
+      name: ${var.job_name_prefix}Project 1 — YouTube stats refresh (07/13/19h)
+      description: >-
+        refresh_daily → bronze_ingest → stg_channels / stg_videos → gold_snapshot_facts → agg_restaurant_daily_views → agg_restaurant_ranking.
+        Only the snapshot facts and the view aggregates; new videos, dims, comments, transcripts and checks stay in the daily job.
+      schedule:
+        quartz_cron_expression: "0 0 7,13,19 * * ?"
+        timezone_id: Asia/Ho_Chi_Minh
+        pause_status: ${var.schedule_pause_status}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tags:
+        project: project1
+        layer: medallion
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        - name: dry_run
+          default: ${var.dry_run}
+      tasks:
+        # Same empty-source guard as the daily run: a bad API answer stops the run before anything is written.
+        - task_key: refresh_daily
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
+          timeout_seconds: 1800
+
+        # Incremental append of every Lakebase table (search rows saved since the last run wait in
+        # Bronze / Silver for the daily job, which builds their dims).
+        - task_key: bronze_ingest
+          depends_on: [{task_key: refresh_daily}]
+          notebook_task:
+            notebook_path: ../src/notebooks/bronze/ingest_raw.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_channels
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/channels.ipynb
+          timeout_seconds: 1800
+
+        - task_key: stg_videos
+          depends_on: [{task_key: bronze_ingest}]
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/videos.ipynb
+          timeout_seconds: 1800
+
+        # Only fact_video_daily_snapshot / fact_channel_daily_snapshot (replaceWhere from today).
+        # fact_comment / fact_search_hit need fresh dims, so they stay in the daily job.
+        - task_key: gold_snapshot_facts
+          depends_on:
+            - task_key: stg_channels
+            - task_key: stg_videos
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/facts.ipynb
+            base_parameters:
+              facts: snapshots
+          timeout_seconds: 1800
+
+        - task_key: gold_agg_daily_views
+          depends_on: [{task_key: gold_snapshot_facts}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_restaurant_daily_views.ipynb
+          timeout_seconds: 1800
+
+        # Reads the comment / restaurant tables the daily job last wrote; only the view parts change.
+        - task_key: gold_agg_ranking
+          depends_on: [{task_key: gold_agg_daily_views}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
+          timeout_seconds: 1800
