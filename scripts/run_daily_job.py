@@ -14,7 +14,7 @@ import time
 
 from run_search_job import _api, _token
 
-JOB_NAME = "Project 1 — YouTube restaurants medallion (daily)"
+JOB_NAME = "Project 1 — auto search + medallion (daily 01h)"
 
 
 def main(argv: list[str] | None = None) -> int:
