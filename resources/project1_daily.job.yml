@@ -1,5 +1,5 @@
 # Daily job, once a day at 01:00 VN (design 1.5 "Daily job order"): auto_search, then the full medallion
-# pipeline down to the serving tables. The other two jobs: project1_stats_refresh (07/09/21h, counts only)
+# pipeline down to the serving tables. The other two jobs: project1_stats_refresh (07/13/21h, counts only)
 # and project1_search (manual search, no schedule). Each task depends on the previous step,
 # so a failure (empty-source guard, Gold checks) stops everything after it.
 resources:
