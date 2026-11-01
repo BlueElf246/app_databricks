@@ -2,11 +2,12 @@
 
 Table public.search_keywords holds one row per (normalized keyword, mode) with its schedule:
 - origin grid: dish x district of Ho Chi Minh City ("quán phở Quận 3"), seeded once;
-- origin verify: "<restaurant> review" for well-rated restaurants that only one channel reviewed;
+- origin verify: "<restaurant> review" for well-rated restaurants (2026-10-31 to 2026-11-01). Retired:
+  on dev only 21% of its hits named the restaurant (small places are titled by dish + district, e.g.
+  "Cơm tấm Q4 hơn 30 năm"), so plan() deactivates these rows and the grid (dish + district) covers them;
 - origin manual: every keyword searched by hand (chat, app, Jobs UI), so it is re-run too.
 The grid exists twice: mode youtube (videos) and mode places (Google Maps Text Search, 1 page =
-20 places = 1 call; added 2026-10-31). Restaurants that only Google knows become verify keywords
-"<restaurant> review" on YouTube.
+20 places = 1 call; added 2026-10-31).
 priority is recomputed every day by plan(); auto_search picks the due keywords with the
 highest priority. After a run the keyword rests cooldown_days (youtube 7, doubled up to 60 while a
 run finds no new video; places 30 -> 90, Google Maps results change slowly).
@@ -19,8 +20,6 @@ from typing import Any, Iterable
 from database import APP_SCHEMA, get_connection
 
 COOLDOWN_DAYS = {"youtube": (7, 60), "places": (30, 90)}  # (after a run with new results, max)
-VERIFY_MIN_RATING, VERIFY_MIN_REVIEWS = 4.3, 100
-VERIFY_MIN_REVIEWS_GOOGLE_ONLY = 200  # restaurants found only on Google Maps (no YouTube review yet)
 
 # (dish as typed in the keyword, cuisine group used by the dashboard / gold.dim_restaurant)
 DISHES: list[tuple[str, str]] = [
@@ -97,25 +96,6 @@ def grid_candidates(modes: Iterable[str] = ("youtube", "places")) -> list[dict[s
     ]
 
 
-def verify_candidates(restaurants: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Well-rated restaurants with at most one YouTube channel: look for (more) reviews on YouTube.
-
-    Restaurants only Google Maps knows (has_youtube_review false) need more Google reviews (200).
-    """
-    def min_reviews(r: dict[str, Any]) -> int:
-        return VERIFY_MIN_REVIEWS_GOOGLE_ONLY if r.get("has_youtube_review") is False else VERIFY_MIN_REVIEWS
-
-    return [
-        {"keyword": f"{r['restaurant_name']} review", "mode": "youtube", "origin": "verify",
-         "district": r.get("district"), "cuisine": r.get("cuisine")}
-        for r in restaurants
-        if r.get("restaurant_name")
-        and (r.get("channel_count") or 0) <= 1
-        and (r.get("google_rating") or 0) >= VERIFY_MIN_RATING
-        and (r.get("google_rating_count") or 0) >= min_reviews(r)
-    ]
-
-
 def gap_scores(restaurants: list[dict[str, Any]]) -> dict[tuple[str, str], float]:
     """How thin the dashboard is per (district, cuisine): 1/(1+restaurants) + 0.5/(1+Legit restaurants)."""
     counts: dict[tuple[str, str], list[int]] = {}
@@ -133,10 +113,8 @@ def gap_scores(restaurants: list[dict[str, Any]]) -> dict[tuple[str, str], float
 
 
 def plan(restaurants: list[dict[str, Any]]) -> dict[str, int]:
-    """Seed the grid, add verify keywords from Gold, recompute every priority. Returns counts."""
+    """Seed the grid, retire the verify keywords, recompute every priority. Returns counts."""
     upsert_candidates(grid_candidates())
-    verify = verify_candidates(restaurants)
-    upsert_candidates(verify)
     # YouTube keywords fill cells without YouTube reviews; Google Maps keywords fill cells without any restaurant
     gaps = {"youtube": gap_scores([r for r in restaurants if r.get("has_youtube_review") is not False]),
             "places": gap_scores(restaurants)}
@@ -144,6 +122,9 @@ def plan(restaurants: list[dict[str, Any]]) -> dict[str, int]:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            # "<restaurant> review" keywords are retired (see module docstring); rows stay for history
+            cur.execute("UPDATE search_keywords SET active = false, updated_at = NOW() WHERE origin = 'verify' AND active")
+            retired = cur.rowcount
             cur.execute("SELECT keyword_normalized, mode, origin, district, cuisine, runs, last_new_videos FROM search_keywords")
             rows = cur.fetchall()
             updates = []
@@ -165,14 +146,14 @@ def plan(restaurants: list[dict[str, Any]]) -> dict[str, int]:
                 updates,
             )
         conn.commit()
-    return {"keywords": len(rows), "verify_candidates": len(verify)}
+    return {"keywords": len(rows), "verify_retired": retired}
 
 
-def due_keywords(limit: int, mode: str = "youtube", verify_share: float = 0.25, per_dish: int = 2) -> list[dict[str, Any]]:
+def due_keywords(limit: int, mode: str = "youtube", verify_share: float = 0.0, per_dish: int = 2) -> list[dict[str, Any]]:
     """Due keywords to search today, highest priority first.
 
-    verify keywords get up to verify_share of the slots first (they never win on priority against
-    never-searched grid keywords); grid keywords then take at most per_dish per dish so one day
+    verify keywords (retired 2026-11-01, so verify_share defaults to 0) get up to verify_share of the
+    slots first; grid keywords then take at most per_dish per dish so one day
     covers several dishes; leftover slots are filled by priority. Ties are shuffled per day.
     """
     with get_connection() as conn:
@@ -189,7 +170,7 @@ def due_keywords(limit: int, mode: str = "youtube", verify_share: float = 0.25, 
             )
             columns = [d.name for d in cur.description]
             rows = [dict(zip(columns, r)) for r in cur.fetchall()]
-    verify = [r for r in rows if r["origin"] == "verify"][: max(1, int(limit * verify_share))]
+    verify = [r for r in rows if r["origin"] == "verify"][: max(1, int(limit * verify_share)) if verify_share else 0]
     picked = verify[:limit]
     taken = {r["keyword_normalized"] for r in picked}
     per: dict[str, int] = {}
