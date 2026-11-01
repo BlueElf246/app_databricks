@@ -91,6 +91,8 @@ targets:
         project1_search:
           # The bundle owns this ACL, so list everyone who runs the job (see project1_search.job.yml).
           permissions:
+            - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
+              level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
             - service_principal_name: b5dc6edb-27c3-4bbe-9f47-c4e589402af0  # app yt-search-<user> (Search ingest page)
@@ -98,6 +100,8 @@ targets:
         project1_daily:
           # claude-search runs the end-to-end pipeline from the Claude chat (dev only)
           permissions:
+            - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
+              level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
 
