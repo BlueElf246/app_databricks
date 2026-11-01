@@ -4,63 +4,74 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 
 ## Tính năng
 
-- 🔎 Tìm kiếm video YouTube qua YouTube Data API v3, lưu video / kênh / kết quả tìm kiếm (kèm `search_order`, `result_rank`) vào Lakebase Postgres (UPSERT)
-- 💬 Lấy bình luận của video
-- 💾 Xem danh sách video đã lưu với filters & pagination
-- 🏆 Xếp hạng quán ăn từ Gold model (`prod.gold.agg_restaurant_ranking`)
-- 🔁 Refresh hằng ngày + pipeline medallion chạy bằng một Databricks job
-- 📦 Toàn bộ job, app và schemas được deploy bằng một Databricks Asset Bundle (`databricks.yml`)
+- 🔎 Tìm video YouTube review quán ăn (YouTube Data API v3) và tìm quán trên Google Maps (Places API New), lưu vào Lakebase Postgres
+- 🤖 Tự động tìm mỗi ngày (`auto_search`): ~20 keyword YouTube, video mới của 100 kênh ẩm thực đang theo dõi, tối đa 15 keyword Google Maps
+- 💬 Lấy top 100 bình luận của video review (≤ 200 video / ngày) và phân tích cảm xúc bằng LLM
+- 🗺️ Bổ sung quán từ OpenStreetMap (1 lần / tuần) và từ Google Place Details (rating, giá, loại món, review)
+- 🏆 Xếp hạng quán (`agg_restaurant_ranking`: điểm hot 7/30 ngày + `legit_score`), dashboard AI/BI "Tìm quán ăn ngon", trang app "Xếp hạng quán ăn"
+- 📦 Job, app, dashboard, schemas deploy bằng một Databricks Asset Bundle (`databricks.yml`); cloud thread của Claude deploy dev bằng service principal `claude-deploy`
 
 ## Cấu trúc
 
 ```
-├── databricks.yml                  # Bundle: variables + targets dev / prod
+├── databricks.yml                     # Bundle: variables + targets dev / prod (+ quyền của claude-deploy ở dev)
 ├── resources/
-│   ├── project1_daily.job.yml      # Daily medallion job (12 tasks)
-│   ├── youtube_search.app.yml      # Streamlit app + its resources (secret, SQL warehouse)
-│   └── medallion.schemas.yml       # bronze / silver / gold schemas (+ Gold grant for the app)
+│   ├── project1_daily.job.yml         # Daily medallion job (25 tasks)
+│   ├── project1_search.job.yml        # On-demand search job (1 keyword, YouTube hoặc Google Places)
+│   ├── restaurant_finder.dashboard.yml# AI/BI dashboard trên Gold
+│   ├── youtube_search.app.yml         # Streamlit app + resources (secret, SQL warehouse, search job)
+│   └── medallion.schemas.yml          # bronze / silver / gold schemas
 ├── src/
-│   ├── app/                        # Databricks App source (deployed as is)
-│   │   ├── app.py                  # Streamlit main page: search, save, comments
-│   │   ├── app.yaml                # App command + env (valueFrom → app resources)
-│   │   ├── database.py             # Lakebase Postgres connection + schema migration (init_db)
-│   │   ├── youtube_client.py       # YouTube Data API v3 client
-│   │   ├── gold_client.py          # Read-only access to Gold via a SQL warehouse
-│   │   ├── refresh_daily.py        # Daily re-read of saved videos / channels (empty-source guard); also job step 1
-│   │   ├── requirements.txt
-│   │   └── pages/                  # 2_saved_videos.py, 3_restaurant_ranking.py
-│   └── notebooks/                  # Pipeline notebooks (job tasks)
-│       ├── refresh/run_refresh     # Runs src/app/refresh_daily.py on serverless
-│       ├── bronze/ingest_raw       # Lakebase → <catalog>.bronze.*_raw (append-only)
-│       ├── stg/                    # Bronze → silver.stg_* (+ LLM restaurant extraction)
-│       ├── gold/                   # Kimball dims, facts, checks, restaurant dim, ranking
-│       └── landing/                # Old raw ingest (kept for reference, not in the job)
-└── scripts/test_api.py             # YouTube API exploration script
+│   ├── app/                           # Databricks App (Streamlit) + code dùng chung với job
+│   │   ├── app.py, pages/             # Search, Saved videos, Xếp hạng quán ăn, Search ingest
+│   │   ├── youtube_client.py, places_client.py, search_task.py, comments_task.py, keywords.py
+│   │   ├── refresh_daily.py           # Đọc lại video / kênh đã lưu mỗi ngày (empty-source guard)
+│   │   └── database.py, gold_client.py
+│   ├── dashboards/restaurant_finder.lvdash.json
+│   └── notebooks/
+│       ├── refresh/                   # auto_search, run_refresh, fetch_comments, run_search
+│       ├── bronze/                    # ingest_raw (Lakebase → *_raw), osm_ingest (Overpass)
+│       ├── stg/                       # Silver: stg_* + LLM (classification, mentions, sentiment, transcripts) + Google (geocode, place details)
+│       ├── gold/                      # dims, facts, restaurants, checks, agg_*, run_summary
+│       └── landing/                   # Old raw ingest (reference only)
+└── scripts/
+    ├── run_search_job.py              # Chạy job search từ chat ("tìm quán X")
+    ├── run_daily_job.py               # Chạy daily job end to end, in trạng thái từng task + run_summary
+    └── ask_restaurants.py             # Trả lời "hôm nay ăn gì ở quận X?" từ Gold (read-only)
 ```
 
 ## Deploy (Databricks Asset Bundle)
 
-Step-by-step guide (setup, secrets, deploy, run, troubleshooting): [docs/BUNDLE_MANUAL.md](docs/BUNDLE_MANUAL.md).
+Hướng dẫn chi tiết (setup, secrets, deploy, run, troubleshooting): [docs/BUNDLE_MANUAL.md](docs/BUNDLE_MANUAL.md).
 
-Workspace `https://dbc-66b44822-7fe7.cloud.databricks.com`, Databricks CLI ≥ 0.270.
+Workspace `https://dbc-66b44822-7fe7.cloud.databricks.com` (AWS), Databricks CLI ≥ 0.270.
 
-| Target | Schemas | Job | Refresh step | Root path |
+| Target | Schemas | Job | Ghi vào Postgres | Root path |
 | --- | --- | --- | --- | --- |
-| `dev` (default) | `prod.dev_bronze` / `prod.dev_silver` / `prod.dev_gold` | `[dev] Project 1 — …`, paused | dry run (writes nothing to Postgres) | `~/.bundle/project1_youtube_restaurants/dev` |
-| `prod` | `prod.bronze` / `prod.silver` / `prod.gold` | `Project 1 — …` (id 807264924625256), 01:00 Asia/Ho_Chi_Minh | writes | `~/.bundle/project1_youtube_restaurants/prod` |
+| `dev` (default) | `prod.dev_bronze` / `prod.dev_silver` / `prod.dev_gold` | `[dev] Project 1 — …`, 01:00 Asia/Ho_Chi_Minh, **đang bật** | có (`dry_run=false`) | `/Workspace/Users/lemanhdat2112@gmail.com/.bundle/project1_youtube_restaurants/dev` (cố định) |
+| `prod` | `prod.bronze` / `prod.silver` / `prod.gold` | `Project 1 — …` (id 807264924625256), schedule paused | có | `~/.bundle/project1_youtube_restaurants/prod` |
 
 ```bash
 databricks bundle validate --strict              # dev
 databricks bundle deploy                         # dev
-databricks bundle run project1_daily             # dev run
-databricks bundle plan -t prod                   # review before a prod deploy
+python scripts/run_daily_job.py                  # dev run end to end (--dry-run: không ghi)
+databricks bundle plan -t prod                   # review trước khi deploy prod
 databricks bundle deploy -t prod
 ```
 
-- Notebooks read the schema names from job parameters `bronze` / `silver` / `gold` (`catalog.schema`, default `prod.*` when a notebook is run by hand), so the same code runs in both targets.
-- Both targets read the same Lakebase Postgres (`lakebase_pg`); dev only reads it (refresh is a dry run).
-- The prod job, app and schemas existed before the bundle and are bound to it (`bundle deployment bind`), so they keep their ids and history. The prod schemas have `prevent_destroy`.
-- Turning the daily schedule on: set `schedule_pause_status: UNPAUSED` for `prod` in `databricks.yml` once the secret `youtube/api_key` exists and a dry run passed, then deploy.
+- Notebooks đọc tên schema từ job parameters `bronze` / `silver` / `gold`, nên cùng code chạy cho cả hai target.
+- Dev và prod dùng **chung một Lakebase Postgres**: một run dev có ghi là ghi dữ liệu thật.
+- Prod job, app và schemas có từ trước bundle và đã được bind (`bundle deployment bind`); prod schemas có `prevent_destroy`.
+
+### Ai deploy được dev
+
+| Ai | Cách đăng nhập | Quyền |
+| --- | --- | --- |
+| datle | CLI profile `dbc-66b44822-7fe7` trên máy | Owner của job / dashboard / app dev; job chạy dưới tên datle |
+| `claude-deploy` (SP, app id `10d899a3-…`) | Cloud environment `databricks_deploy` (Network secret OAuth client credentials, proxy gắn token; CLI cài bằng setup script) | CAN_MANAGE trên thư mục bundle, job, dashboard, app dev (khai báo ở `targets.dev.permissions`); USE CATALOG `prod`, USE SCHEMA + MANAGE trên `dev_*`; CAN_MANAGE warehouse; MANAGE scope `youtube`. Không đọc dữ liệu |
+| `claude-search` (SP) | Cloud environment `run_search` (chỉ `/api/2.2/jobs/`) | CAN_MANAGE_RUN job search + daily (dev); SELECT `gold` / `dev_gold`. Không deploy được |
+
+Vì vậy `root_path`, `app_name`, `notification_email` của dev được cố định theo datle: ai deploy cũng cập nhật đúng một bộ resource. Sau này GitHub Actions dùng lại `claude-deploy`.
 
 ## App setup
 
@@ -94,8 +105,10 @@ Deployed: `databricks bundle deploy -t prod`, then `databricks bundle run youtub
 Design: Notion "Redesign Project 1 data model with Kimball" (1.3 dimensions, 1.4 facts, 1.5 layers and load patterns).
 
 ```
-YouTube API ─► app (search / save) ─┐
-            └► refresh_daily.py ────┴─► Lakebase Postgres public.* (latest values only)
+YouTube API ─► app / search job / auto_search ─┐
+Google Places ─► search job / auto_search ─────┤
+            └► refresh_daily.py, fetch_comments ┴─► Lakebase Postgres public.* (latest values only)
+OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_osm_restaurants
                                           │  (foreign catalog lakebase_pg)
                                           ▼
    BRONZE prod.bronze.*_raw        append-only copy of every read, partitioned by ingest_date, 180-day retention
@@ -115,6 +128,11 @@ YouTube API ─► app (search / save) ─┐
 | Silver | `stg_comments` / `stg_search_results` | `comment_id` / `id` | MERGE / insert-only MERGE |
 | Silver | `stg_video_transcripts` | `video_id` | Gemini API reads the YouTube URL (free tier, ≤ 7 h video / day, videos ≤ 20 min); insert-only cache, `[không có lời nói]` when the video has no speech |
 | Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description + transcript, only for new / changed videos or when a transcript arrives (`stg_restaurant_extraction_log`) |
+| Silver | `stg_video_classification` | `video_id` | `ai_query`: restaurant_review / food_other / not_food; not_food bị bỏ qua ở các bước sau |
+| Silver | `stg_places` | `place_id` | Google Text Search (search job + auto_search mode places) → quán chỉ có trên Google |
+| Silver | `stg_osm_restaurants` | OSM element | Quán ăn / cafe ở TP.HCM từ OpenStreetMap; bổ sung cuisine, giờ mở cửa cho `dim_restaurant` |
+| Silver | `stg_comment_sentiment` | `comment_id` | `ai_query`: positive / negative / neutral + có nói về món ăn không |
+| Silver | `stg_restaurant_place_reviews` | `review_id` | ≤ 5 Google review mỗi lần đọc Place Details, tích lũy qua các lần đọc lại |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
 | Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, photo) of geocoded places, re-read every 30 days, max 900 calls per month (free Enterprise tier) |
@@ -124,24 +142,46 @@ YouTube API ─► app (search / save) ─┐
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
 | Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city); `legit_score` 0–100 from Bayesian Google rating, review count, distinct channels, like rate, views 30d + `legit_label` |
 
+Thêm vào Gold: `fact_google_review` (review × quán), `agg_restaurant_daily_views` (views mỗi ngày của quán, cho trending 7 ngày), `agg_restaurant_comments` (cảm xúc comment theo quán). `agg_restaurant_ranking` có thêm cột 7 ngày và `data_source` (YouTube + Google / Chỉ YouTube / Chỉ Google).
+
 `src/notebooks/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
 ### Daily job
 
-Job **"Project 1 — YouTube restaurants medallion (daily)"** (defined in `resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, emails on failure. Each step depends on the previous one, so a failure stops everything after it:
+Job **"[dev] Project 1 — YouTube restaurants medallion (daily)"** (`resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, email khi lỗi, 25 tasks. Một task lỗi thì các task phía sau dừng:
 
 ```
-refresh_daily → bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results
-  → gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode
-  → stg_restaurant_place_details
-  → gold_facts + gold_restaurants → gold_checks → gold_agg_ranking
+auto_search → refresh_daily → fetch_comments → bronze_ingest
+osm_ingest → stg_osm_restaurants  (song song; chỉ gọi Overpass 1 lần / tuần)
+bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results / stg_places
+stg_videos → stg_video_classification → gold_dims → gold_facts
+gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details
+gold_restaurants (dims + place details + places + OSM) → gold_checks → gold_agg_daily_views
+stg_comment_sentiment → gold_agg_comments
+gold_agg_daily_views + gold_agg_comments → gold_agg_ranking → run_summary
 ```
 
-Guards: `refresh_daily.py` reads everything first and stops **before writing** if the API returns 0 rows or more than 20% zero counters; all writes are atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); every date key uses Vietnam time.
+Guards: `refresh_daily.py` dừng **trước khi ghi** nếu API trả 0 dòng hoặc > 20% counter = 0; mọi lần ghi là atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); mọi date key theo giờ Việt Nam. Các task gọi API ngoài (auto_search, fetch_comments, geocode, place details, transcripts) **không fail** khi hết quota: gặp HTTP 429 là dừng gọi, phần còn lại chờ run sau.
 
-The refresh step needs secrets in scope `youtube`: `pg_password` (Postgres role `admin`) and `api_key` (YouTube Data API v3). Job parameter `dry_run=true` calls the API and runs the guard without writing.
+Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Places API New). Job parameter `dry_run=true` gọi API nhưng không ghi.
 
-To change the task list, edit `resources/project1_daily.job.yml`, then `bundle validate` / `plan` / `deploy`.
+### Nguồn dữ liệu và quota (giữ ở mức miễn phí)
+
+| Nguồn | Task | Giới hạn trong code | Quota / chi phí |
+| --- | --- | --- | --- |
+| YouTube Data API v3 | auto_search, refresh_daily, fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200) |
+| Google Places Text Search | auto_search (places), search job, stg_restaurant_geocode | 800 call / tháng (auto ≤ 450); geocode ≤ 100 / ngày | Free theo tháng, nhưng GCP project còn giới hạn **"SearchTextRequest per day"** |
+| Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |
+| Gemini API (transcript) | stg_video_transcripts | ≤ 20 call / run, ≤ 7 h video / ngày | Free tier; hay gặp 503 / 429 |
+| OpenStreetMap Overpass | osm_ingest | 1 query / tuần | Miễn phí |
+| Databricks `ai_query` (Qwen3 80B) | stg_video_classification, stg_restaurant_mentions (≤ 150 video / run), stg_comment_sentiment (≤ 5,000 comment / run) | | **Tính phí** (Foundation Model API + serverless), không có free tier |
+
+### Run gần nhất (dev, 01/11/2026)
+
+[Run 687321359620570](https://dbc-66b44822-7fe7.cloud.databricks.com/?o=7474659725199695#job/1097737746449974/run/687321359620570): 25/25 task SUCCESS, ~20 phút.
+
+- Có dữ liệu: 355 video mới từ 20 keyword + 2,468 video mới từ kênh theo dõi; 13,280 comment của 199 video; 5,965 điểm OSM; 3,691 comment được phân tích cảm xúc; 150 video được trích quán; 543 quán trong ranking (3 Legit, 196 Bình thường, 344 Ít dữ liệu).
+- Không có dữ liệu mới: Google Places auto (dừng sau 1 keyword), geocode (1 call), Place Details (2 call) đều bị **GCP daily quota** (HTTP 429) vì run lúc 01:00 đã dùng hết hạn mức ngày; `fact_google_review` = 0 dòng. Transcript: 0 (Gemini 503 / 429).
 
 ### Run the refresh locally
 
@@ -159,7 +199,11 @@ python refresh_daily.py             # write to Postgres
 
 ## Known limits
 
-- `cuisine` / `price_band` come only from Google Places: restaurants Google did not match, or whose only type is `restaurant`, show `Chưa rõ`.
-- YouTube has no share count, so `legit_score` does not use shares.
-- Snapshot history before 2026-10-26 is sparse (no daily refresh yet), so the first gains cover more than one day.
-- `dim_keyword.dish` / `city` are NULL until keyword parsing is built; `search_order` / `result_rank` are NULL for searches before 2026-10-26.
+- **Google reviews chưa có dữ liệu** (`stg_restaurant_place_reviews`, `fact_google_review` = 0): code đọc review từ 01/11 nhưng GCP project giới hạn "GetPlaceRequest per day" quá thấp, mỗi ngày chỉ được vài chục call. Tăng hạn mức ngày trong GCP Console → IAM & Admin → Quotas (Places API) để chạy hết ~250 quán chờ (vẫn trong 1,000 free / tháng).
+- Google Text Search cũng bị "SearchTextRequest per day": auto Places và geocode chỉ chạy được vài call mỗi ngày.
+- Transcript (Gemini free tier) thường bị 503 / 429, mới có 40 video có transcript.
+- `ai_query` tính phí theo token: là phần duy nhất của run không miễn phí.
+- `cuisine` / `price_band` lấy từ Google Places (và cuisine từ OSM): quán Google không match hiển thị `Chưa rõ`.
+- Top "hot" có thể lẫn kênh / video không phải quán ăn (ví dụ "MyGear" ngày 01/11, chưa kiểm tra): classifier và extraction chưa lọc hết.
+- YouTube không có share count, nên `legit_score` không dùng share.
+- `dim_keyword.dish` / `city` NULL cho tới khi có keyword parsing.
