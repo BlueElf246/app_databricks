@@ -5,6 +5,7 @@ This repo is a **Databricks Asset Bundle** (DAB). One file, `databricks.yml`, pl
 | Resource | Key in the bundle | What it is |
 | --- | --- | --- |
 | Job | `project1_daily` | The daily medallion pipeline (12 notebook tasks, refresh → Bronze → Silver → Gold → checks → ranking) |
+| Job | `project1_stats_refresh` | Re-reads view / like / comment counts at 07:00, 13:00, 19:00 and rebuilds the snapshot facts + view aggregates (grain stays video × day) |
 | App | `youtube_search` | The Streamlit app in `src/app` |
 | Schemas | `bronze`, `silver`, `gold` | The three medallion schemas in catalog `prod` |
 
