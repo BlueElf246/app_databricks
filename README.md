@@ -18,7 +18,7 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 ├── resources/
 │   ├── project1_daily.job.yml         # Daily medallion job (25 tasks)
 │   ├── project1_search.job.yml        # On-demand search job (1 keyword, YouTube hoặc Google Places)
-│   ├── project1_stats_refresh.job.yml # Refresh view / like / comment lúc 07/09/21h (7 tasks)
+│   ├── project1_stats_refresh.job.yml # Refresh view / like / comment lúc 07/13/21h (7 tasks)
 │   ├── restaurant_finder.dashboard.yml# AI/BI dashboard trên Gold
 │   ├── youtube_search.app.yml         # Streamlit app + resources (secret, SQL warehouse, search job)
 │   └── medallion.schemas.yml          # bronze / silver / gold schemas
@@ -166,7 +166,7 @@ Guards: `refresh_daily.py` dừng **trước khi ghi** nếu API trả 0 dòng h
 
 ### Stats refresh trong ngày
 
-Job **"[dev] Project 1 — YouTube stats refresh (07/09/21h)"** (`resources/project1_stats_refresh.job.yml`), 07:00, 09:00, 21:00 `Asia/Ho_Chi_Minh` (01:00 do daily job làm), email khi lỗi, 7 tasks:
+Job **"[dev] Project 1 — YouTube stats refresh (07/13/21h)"** (`resources/project1_stats_refresh.job.yml`), 07:00, 13:00, 21:00 `Asia/Ho_Chi_Minh` (01:00 do daily job làm), email khi lỗi, 7 tasks:
 
 ```
 refresh_daily → bronze_ingest → stg_channels / stg_videos → gold_snapshot_facts (facts.ipynb, facts=snapshots)
@@ -181,7 +181,7 @@ Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Pl
 
 | Nguồn | Task | Giới hạn trong code | Quota / chi phí |
 | --- | --- | --- | --- |
-| YouTube Data API v3 | auto_search, refresh_daily (01h + stats refresh 07/09/21h), fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200); stats refresh thêm ~3 × 280 = ~840 unit / ngày |
+| YouTube Data API v3 | auto_search, refresh_daily (01h + stats refresh 07/13/21h), fetch_comments, search job | 20 keyword × 100 unit; 100 kênh; 200 video comment / ngày | Free 10,000 unit / ngày. Run 01/11: ~2,650 unit (auto_search ~2,150, refresh ~280, comments 200); stats refresh thêm ~3 × 280 = ~840 unit / ngày |
 | Google Places Text Search Enterprise (đủ trường) | search job (search tay) | 800 call / tháng | Free 1,000 / tháng |
 | Google Places Text Search Pro (không rating / giá / giờ / điện thoại / web) | auto_search (places, 40 keyword / ngày), stg_restaurant_geocode | auto ≤ 1,500 / tháng; geocode ≤ 100 / ngày | Free 5,000 / tháng (chung); Place Details bù các trường thiếu |
 | Google Place Details (Enterprise + Atmosphere) | stg_restaurant_place_details | ≤ 300 / ngày, ≤ 900 / tháng, đọc lại mỗi 30 ngày | Free 1,000 / tháng; GCP giới hạn **"GetPlaceRequest per day"** |
