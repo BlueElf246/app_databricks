@@ -2,6 +2,8 @@
 #   databricks bundle validate --strict            # dev (default)
 #   databricks bundle deploy                       # dev: prod.dev_* schemas, "[dev]" job, schedule paused
 #   databricks bundle deploy -t prod               # prod: prod.bronze / silver / gold, real names
+# Cloud threads deploy dev as the service principal claude-deploy (guide:
+# project files project1/deploy-service-principal-guide.md).
 #
 # dev does not use `mode: development`: that mode renames UC schemas to dev_<user>_*, and dev
 # should write to prod.dev_bronze / prod.dev_silver / prod.dev_gold (same catalog as prod).
@@ -68,9 +70,22 @@ targets:
     variables:
       # Daily run on (datle 31/10: auto search runs every day on dev)
       schedule_pause_status: UNPAUSED
+      # Fixed to datle (not ${workspace.current_user...}) so a deploy by the service principal
+      # claude-deploy (cloud threads, later GitHub Actions) updates the same app, not a new one.
+      app_name: yt-search-lemanhdat2112
+      notification_email: lemanhdat2112@gmail.com
     workspace:
       host: https://dbc-66b44822-7fe7.cloud.databricks.com
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      # Fixed to datle's folder: the bundle state lives here, so datle and claude-deploy deploy
+      # the same jobs / dashboard / app instead of each creating their own copy.
+      root_path: /Workspace/Users/lemanhdat2112@gmail.com/.bundle/${bundle.name}/${bundle.target}
+    # Applied to the bundle folder and to every job, dashboard, and app of this target, on top of
+    # the per-job permissions below. datle stays owner, so the jobs keep running as datle.
+    permissions:
+      - user_name: lemanhdat2112@gmail.com
+        level: CAN_MANAGE
+      - service_principal_name: 10d899a3-f900-4242-be6c-2922da0bb0cb  # claude-deploy (cloud deploy, CI/CD)
+        level: CAN_MANAGE
     resources:
       jobs:
         project1_search:
