@@ -28,12 +28,13 @@ from run_search_job import _api, _token  # noqa: E402  (same host + OAuth handli
 REPO_URL = "https://github.com/BlueElf246/app_databricks"
 NOTEBOOK = "src/notebooks/ask/ask_restaurants"
 GOLD = {"dev": "prod.dev_gold", "prod": "prod.gold"}
+SERVING = {"dev": "prod.dev_serving", "prod": "prod.serving"}  # agg_* tables (since 2026-11-02)
 
 
 def ask(args: argparse.Namespace) -> dict:
     token = _token()
     params = {
-        "gold_schema": GOLD[args.target], "district": args.district or "", "dish": args.dish or "",
+        "gold_schema": GOLD[args.target], "serving_schema": SERVING[args.target], "district": args.district or "", "dish": args.dish or "",
         "max_price_band": str(args.max_price or ""), "city": args.city or "", "sort": args.sort,
         "legit_only": "true" if args.legit_only else "false", "limit": str(args.top),
     }

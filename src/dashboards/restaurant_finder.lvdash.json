@@ -52,31 +52,21 @@
       "name": "videos",
       "displayName": "Video review theo quán",
       "queryLines": [
-        "WITH latest AS (\n",
-        "  SELECT video_key, view_count, like_count,\n",
-        "         ROW_NUMBER() OVER (PARTITION BY video_key ORDER BY snapshot_date_key DESC) AS rn\n",
-        "  FROM agg_video_daily\n",
-        ")\n",
+        "-- Review videos per restaurant (serving: agg_restaurant_videos, latest counts)\n",
         "SELECT\n",
-        "  cur.restaurant_name,\n",
-        "  cur.city,\n",
-        "  v.title,\n",
-        "  v.video_url,\n",
-        "  v.thumbnail_url,\n",
-        "  c.channel_title,\n",
-        "  CAST(v.published_at AS DATE) AS published_date,\n",
-        "  l.view_count,\n",
-        "  l.like_count,\n",
-        "  round(100 * l.like_count / NULLIF(l.view_count, 0), 2) AS like_rate_pct,\n",
-        "  m.mention_weight\n",
-        "FROM fact_video_restaurant_mention m\n",
-        "JOIN dim_restaurant r   ON r.restaurant_key = m.restaurant_key\n",
-        "JOIN dim_restaurant cur ON cur.restaurant_id = r.restaurant_id AND cur.is_current\n",
-        "JOIN dim_video v        ON v.video_key = m.video_key\n",
-        "LEFT JOIN dim_channel c ON c.channel_id = v.channel_id\n",
-        "LEFT JOIN latest l      ON l.video_key = m.video_key AND l.rn = 1\n",
-        "WHERE m.restaurant_key <> -1\n",
-        "ORDER BY l.view_count DESC NULLS LAST"
+        "  restaurant_name,\n",
+        "  city,\n",
+        "  title,\n",
+        "  video_url,\n",
+        "  thumbnail_url,\n",
+        "  channel_title,\n",
+        "  published_date,\n",
+        "  view_count,\n",
+        "  like_count,\n",
+        "  like_rate_pct,\n",
+        "  mention_weight\n",
+        "FROM agg_restaurant_videos\n",
+        "ORDER BY view_count DESC NULLS LAST"
       ]
     },
     {
@@ -194,18 +184,11 @@
     },
     {
       "name": "new_restaurants",
-      "displayName": "Quán mới theo ngày (dim_restaurant)",
+      "displayName": "Quán mới theo ngày (agg_new_restaurants_daily)",
       "queryLines": [
-        "-- First version of each restaurant_id = the day it entered the pipeline\n",
-        "SELECT\n",
-        "  CAST(first_seen AS DATE) AS first_seen_date,\n",
-        "  CASE WHEN COALESCE(has_youtube_review, true) THEN 'Có video YouTube' ELSE 'Chỉ Google' END AS source,\n",
-        "  COUNT(*) AS restaurants\n",
-        "FROM (\n",
-        "  SELECT restaurant_id, MIN(valid_from) AS first_seen, max_by(has_youtube_review, valid_from) AS has_youtube_review\n",
-        "  FROM dim_restaurant WHERE restaurant_key <> -1 GROUP BY restaurant_id\n",
-        ")\n",
-        "GROUP BY ALL\n"
+        "-- First version of each restaurant_id = the day it entered the pipeline (serving: agg_new_restaurants_daily)\n",
+        "SELECT first_seen_date, source, restaurants\n",
+        "FROM agg_new_restaurants_daily"
       ]
     }
   ],

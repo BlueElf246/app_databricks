@@ -7,7 +7,7 @@
 # MAGIC (`jobs/runs/submit`, notebook from Git), so no job is deployed or triggered. **Only SELECTs**;
 # MAGIC the result goes back as JSON through `dbutils.notebook.exit`.
 # MAGIC
-# MAGIC Widgets: `gold_schema`, `district` ("Quận 7", "q7", "Bình Thạnh"...), `dish` (matched against
+# MAGIC Widgets: `gold_schema`, `serving_schema` (agg_* tables, default = gold_schema with gold -> serving), `district` ("Quận 7", "q7", "Bình Thạnh"...), `dish` (matched against
 # MAGIC cuisine, name and review video titles), `max_price_band` (1-4), `city`, `sort`
 # MAGIC (legit | trending | hot | rating), `legit_only`, `limit`.
 
@@ -17,15 +17,33 @@ import json
 import re
 import unicodedata
 
-for name, default in [("gold_schema", "prod.dev_gold"), ("district", ""), ("dish", ""), ("max_price_band", ""),
+for name, default in [("gold_schema", "prod.dev_gold"), ("serving_schema", ""), ("district", ""), ("dish", ""), ("max_price_band", ""),
                       ("city", ""), ("sort", "legit"), ("legit_only", "false"), ("limit", "10")]:
     dbutils.widgets.text(name, default)
 arg = {name: dbutils.widgets.get(name).strip() for name in
-       ["gold_schema", "district", "dish", "max_price_band", "city", "sort", "legit_only", "limit"]}
+       ["gold_schema", "serving_schema", "district", "dish", "max_price_band", "city", "sort", "legit_only", "limit"]}
 
 GOLD = arg["gold_schema"]
 if not re.fullmatch(r"[A-Za-z0-9_]+\.[A-Za-z0-9_]+", GOLD):
     raise ValueError(f"bad gold_schema {GOLD!r}")
+SERVING = arg["serving_schema"] or re.sub(r"gold$", "serving", GOLD)
+if not re.fullmatch(r"[A-Za-z0-9_]+\.[A-Za-z0-9_]+", SERVING):
+    raise ValueError(f"bad serving_schema {SERVING!r}")
+
+
+def agg(name: str) -> str:
+    """agg_* tables moved Gold -> serving on 2026-11-02: read serving, else the old Gold copy."""
+    for schema in (SERVING, GOLD):
+        try:
+            if spark.catalog.tableExists(f"{schema}.{name}"):
+                return f"{schema}.{name}"
+        except Exception:  # no USE SCHEMA on serving yet
+            pass
+    return f"{SERVING}.{name}"
+
+
+RANKING = agg("agg_restaurant_ranking")
+VIDEO_DAILY = agg("agg_video_daily")
 
 
 def _strip_accents(text: str) -> str:
@@ -54,7 +72,7 @@ limit = max(1, min(int(arg["limit"] or 10), 30))
 # COMMAND ----------
 
 # Columns added later (7-day trending) may not be deployed yet: fall back to NULL.
-cols = set(spark.table(f"{GOLD}.agg_restaurant_ranking").columns)
+cols = set(spark.table(RANKING).columns)
 def col(name, cast="BIGINT"):
     return f"r.{name}" if name in cols else f"CAST(NULL AS {cast})"
 
@@ -89,7 +107,7 @@ def _old_district(address, city):
     return None, None, None
 
 
-addr = spark.sql(f"SELECT restaurant_id, address, city FROM {GOLD}.agg_restaurant_ranking").toPandas()
+addr = spark.sql(f"SELECT restaurant_id, address, city FROM {RANKING}").toPandas()
 old = [(r.restaurant_id, *_old_district(r.address, r.city)) for r in addr.itertuples()]
 spark.createDataFrame(old, "restaurant_id STRING, district_old STRING, districts_old STRING, ward_new STRING") \
      .createOrReplaceTempView("old_district")
@@ -104,7 +122,7 @@ WITH r AS (
                 '(?iu)^(q\\\\.\\\\s*|quận\\\\s+|huyện\\\\s+|thị trấn\\\\s+|tp\\\\.?\\\\s*|thành phố\\\\s+)', ''),
                 '\\\\s*\\\\(cũ\\\\)$', '')), ''), 'Chưa rõ')
     END AS district_norm
-  FROM {GOLD}.agg_restaurant_ranking a
+  FROM {RANKING} a
 ),
 r2 AS (
   SELECT r.*, o.district_old, o.districts_old, o.ward_new
@@ -117,7 +135,7 @@ videos AS (   -- review videos per restaurant with their latest view count
   JOIN {GOLD}.dim_video v      ON v.video_key = m.video_key
   LEFT JOIN {GOLD}.dim_channel c ON c.channel_id = v.channel_id
   LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count
-             FROM {GOLD}.agg_video_daily GROUP BY video_key) s ON s.video_key = m.video_key
+             FROM {VIDEO_DAILY} GROUP BY video_key) s ON s.video_key = m.video_key
   WHERE m.restaurant_key <> -1
 ),
 top_video AS (
@@ -176,7 +194,7 @@ def _plain(value):
     return float(value) if hasattr(value, "as_tuple") else str(value)   # Decimal -> float, dates -> str
 
 result = {
-    "filters": {**params, "sort": arg["sort"], "limit": limit, "gold_schema": GOLD},
+    "filters": {**params, "sort": arg["sort"], "limit": limit, "gold_schema": GOLD, "serving_schema": SERVING, "ranking_table": RANKING},
     "count": len(rows),
     "rows": [{k: _plain(v) for k, v in row.items()} for row in rows],
 }

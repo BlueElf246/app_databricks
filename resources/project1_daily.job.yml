@@ -30,6 +30,9 @@ resources:
           default: ${var.catalog}.${resources.schemas.silver.name}
         - name: gold
           default: ${var.catalog}.${resources.schemas.gold.name}
+        # Serving layer (agg_* tables read by the dashboard / app / chat), created by the gold/agg_* notebooks (2026-11-02)
+        - name: serving
+          default: ${var.catalog}.${var.schema_prefix}serving
         - name: dry_run
           default: ${var.dry_run}
         - name: auto_search_count

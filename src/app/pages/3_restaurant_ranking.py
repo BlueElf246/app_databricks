@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.title("🏆 Xếp hạng quán ăn")
 st.caption(
-    "Đọc từ Gold model (`prod.gold.agg_restaurant_ranking`), cập nhật mỗi ngày lúc 01:00. "
+    "Đọc từ Gold model (`prod.serving.agg_restaurant_ranking`), cập nhật mỗi ngày lúc 01:00. "
     "Điểm = 0.7 × lượt xem tăng trong 30 ngày + 0.3 × tỷ lệ thích, chuẩn hóa 0–1 trong từng thành phố; "
     "lượt xem của một video được chia đều cho các quán trong video đó."
 )

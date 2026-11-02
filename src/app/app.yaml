@@ -18,11 +18,11 @@ env:
     valueFrom: pg-password
   - name: APP_SCHEMA
     value: "public"
-  # Gold model for the ranking page (YOUTUBE_API_KEY is read from secret youtube/api_key)
+  # Serving tables (agg_*) for the ranking page (YOUTUBE_API_KEY is read from secret youtube/api_key)
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
-  - name: GOLD_SCHEMA
-    value: "prod.gold"
+  - name: SERVING_SCHEMA
+    value: "prod.serving"
   # Job run by the Search ingest page (resource search-job in youtube_search.app.yml)
   - name: SEARCH_JOB_ID
     valueFrom: search-job
