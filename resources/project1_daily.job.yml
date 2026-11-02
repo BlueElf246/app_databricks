@@ -250,6 +250,7 @@ resources:
           depends_on:
             - task_key: gold_agg_daily_views
             - task_key: gold_agg_comments
+            - task_key: gold_place_rating  # google_rating = latest read in fact_place_rating_snapshot
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
           timeout_seconds: 1800
