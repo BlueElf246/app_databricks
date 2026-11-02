@@ -139,8 +139,8 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/stg/video_transcripts.ipynb
             base_parameters:
-              max_videos: "20"
-          timeout_seconds: 3600
+              max_videos: "60"   # 2026-11-02: was 20; the 7 h/day video cap and a 100 min run budget are the real limits
+          timeout_seconds: 7200
 
         - task_key: stg_restaurant_mentions
           depends_on:
