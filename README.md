@@ -148,7 +148,7 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
 | Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city); `legit_score` 0–100 from Bayesian Google rating, review count, distinct channels, like rate, views 30d + `legit_label` |
 
-Thêm vào Gold: `fact_google_review` (review × quán), `agg_restaurant_daily_views` (views mỗi ngày của quán, cho trending 7 ngày), `agg_restaurant_comments` (cảm xúc comment theo quán). `agg_restaurant_ranking` có thêm cột 7 ngày và `data_source` (YouTube + Google / Chỉ YouTube / Chỉ Google).
+Thêm vào Gold: `fact_google_review` (review × quán; từ 2026-11-02 là `dim_google_review`, SCD 1), `agg_restaurant_daily_views` (views mỗi ngày của quán, cho trending 7 ngày), `agg_restaurant_comments` (cảm xúc comment theo quán). `agg_restaurant_ranking` có thêm cột 7 ngày và `data_source` (YouTube + Google / Chỉ YouTube / Chỉ Google).
 
 `src/notebooks/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
