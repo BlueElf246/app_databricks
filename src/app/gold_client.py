@@ -77,7 +77,7 @@ def get_restaurant_videos(restaurant_id: str) -> list[dict[str, Any]]:
         WITH latest AS (
             SELECT video_key, view_count, like_count,
                    ROW_NUMBER() OVER (PARTITION BY video_key ORDER BY snapshot_date_key DESC) AS rn
-            FROM {GOLD_SCHEMA}.fact_video_daily_snapshot
+            FROM {GOLD_SCHEMA}.agg_video_daily
         )
         SELECT v.title, v.video_url, l.view_count, l.like_count, m.mention_weight
         FROM {GOLD_SCHEMA}.fact_video_restaurant_mention m

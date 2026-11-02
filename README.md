@@ -18,7 +18,7 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 ├── resources/
 │   ├── project1_daily.job.yml         # Daily medallion job (25 tasks)
 │   ├── project1_search.job.yml        # On-demand search job (1 keyword, YouTube hoặc Google Places)
-│   ├── project1_stats_refresh.job.yml # Refresh view / like / comment lúc 07/13/21h (7 tasks)
+│   ├── project1_stats_refresh.job.yml # Refresh view / like / comment lúc 07/13/21h (8 tasks)
 │   ├── restaurant_finder.dashboard.yml# AI/BI dashboard trên Gold
 │   ├── youtube_search.app.yml         # Streamlit app + resources (secret, SQL warehouse, search job)
 │   └── medallion.schemas.yml          # bronze / silver / gold schemas
@@ -112,35 +112,38 @@ Google Places ─► search job / auto_search ─────┤
 OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_osm_restaurants
                                           │  (foreign catalog lakebase_pg)
                                           ▼
-   BRONZE prod.bronze.*_raw        append-only copy of every read, partitioned by ingest_date, 180-day retention
+   BRONZE prod.bronze.*_raw        append-only copy of every read, partitioned by ingest_date, 7-day retention (only rows already in Silver)
                                           ▼
-   SILVER prod.silver.stg_*        typed, deduped, history by snapshot_date; + stg_restaurant_mentions (LLM)
+   SILVER prod.silver.stg_*        typed, insert-only: one row per read (snapshot_ts) + *_latest views; + stg_restaurant_mentions (LLM)
                                           ▼
    GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2)
-                                   fact_video_daily_snapshot, fact_channel_daily_snapshot, fact_comment,
+                                   fact_video_snapshot, fact_channel_snapshot, fact_comment_snapshot,
+                                   fact_place_rating_snapshot (one row per read), fact_comment,
                                    fact_search_hit, fact_video_restaurant_mention
+                                   serving per day: agg_video_daily, agg_channel_daily, agg_restaurant_rating_daily
                                    agg_restaurant_ranking  ─► app page "🏆 Xếp hạng quán ăn"
 ```
 
 | Layer | Table | Grain | Load |
 | --- | --- | --- | --- |
 | Bronze | `videos_raw`, `channels_raw`, `comments_raw`, `search_results_raw` | 1 row per source row per read | Append, watermark on `COALESCE(updated_at, created_at)` (`fetched_at` for search results); new source columns are added automatically |
-| Silver | `stg_videos`, `stg_channels` | id × `snapshot_date` (Vietnam day) | MERGE on the grain (latest Bronze read wins) |
-| Silver | `stg_comments` / `stg_search_results` | `comment_id` / `id` | MERGE / insert-only MERGE |
+| Silver | `stg_videos`, `stg_channels`, `stg_comments` | id × `snapshot_ts` (time of the read; `snapshot_date` = Vietnam day, for clustering) | Insert-only MERGE (`_history` helper): every read is kept, nothing is overwritten, so reruns during the day lose no numbers. `<table>_latest` view = last read per id |
+| Silver | `stg_search_results` | `id` | Insert-only MERGE |
 | Silver | `stg_video_transcripts` | `video_id` | Gemini API reads the YouTube URL (free tier, ≤ 7 h video / day, videos ≤ 20 min); insert-only cache, `[không có lời nói]` when the video has no speech |
 | Silver | `stg_restaurant_mentions` | `video_id` × normalized restaurant name | `ai_query` extraction from title + description + transcript, only for new / changed videos or when a transcript arrives (`stg_restaurant_extraction_log`) |
 | Silver | `stg_video_classification` | `video_id` | `ai_query`: restaurant_review / food_other / not_food; not_food bị bỏ qua ở các bước sau |
-| Silver | `stg_places` | `place_id` | Google Text Search (search job + auto_search mode places) → quán chỉ có trên Google |
+| Silver | `stg_places` | `place_id` × `snapshot_ts` | Every Google Text Search read (search job + auto_search mode places), insert-only; replaces `stg_place_rating_reads`. View `stg_places_latest` = last read of operating food places (quán chỉ có trên Google). Also `stg_search_keywords`, `stg_place_search_results` (insert-only, `_latest` views) |
 | Silver | `stg_osm_restaurants` | OSM element | Quán ăn / cafe ở TP.HCM từ OpenStreetMap; bổ sung cuisine, giờ mở cửa cho `dim_restaurant` |
 | Silver | `stg_comment_sentiment` | `comment_id` | `ai_query`: positive / negative / neutral + có nói về món ăn không |
 | Silver | `stg_restaurant_place_reviews` | `review_id` | ≤ 5 Google review mỗi lần đọc Place Details, tích lũy qua các lần đọc lại |
-| Silver | `stg_place_rating_reads` | `place_id` × `read_at` × `source` | Mọi lần đọc rating Google (Place Details + Text Search thủ công), append-only, không ghi đè: lịch sử rating |
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
-| Silver | `stg_restaurant_place_details` | `place_id` | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then the top 20 by `legit_score` (re-read every 7 days, rating history), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
+| Silver | `stg_restaurant_place_details` | `place_id` × `fetched_at` (insert-only, view `_latest`) | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then the top 20 by `legit_score` (re-read every 7 days, rating history), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
 | Gold | `dim_restaurant` | one row per version | SCD 2 on address / location; name, `cuisine`, `price_band`, `google_rating`, `google_rating_count` are type 1; dedup = Google `place_id`, else normalized name + district |
-| Gold | `fact_video_daily_snapshot`, `fact_channel_daily_snapshot` | id × snapshot day | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` additive |
-| Gold | `fact_restaurant_rating_daily_snapshot` | place × snapshot day | `CREATE OR REPLACE` from `stg_place_rating_reads`; dense (last read carried forward); `rating` / `rating_count` semi-additive, `rating_change` / `rating_count_gained` additive, `days_since_read` |
+| Gold | `fact_video_snapshot`, `fact_channel_snapshot`, `fact_comment_snapshot` | id × `snapshot_ts` (every read) | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` (vs the previous read) additive |
+| Gold | `fact_place_rating_snapshot` | place × `snapshot_ts` × source (place_details / text_search) | `CREATE OR REPLACE` from `stg_places` + `stg_restaurant_place_details`; `rating_change`, `rating_count_gained` vs the previous read |
+| Serving | `agg_video_daily`, `agg_channel_daily` | id × day | Last read of the day, gains vs the previous day, `reads_in_day`; dashboards / ranking read these. Other grains (hour, week) can be added from the read-grain facts as dashboards need them |
+| Serving | `agg_restaurant_rating_daily` | place × day | Dense (last read carried forward); `rating` / `rating_count` semi-additive, `rating_change` / `rating_count_gained` additive, `days_since_read` |
 | Gold | `fact_comment` / `fact_search_hit` | comment / run × keyword × video | MERGE / insert-only MERGE |
 | Gold | `fact_video_restaurant_mention` | video × restaurant | Full-sync MERGE; `mention_weight = 1 / restaurants in the video` |
 | Gold | `agg_restaurant_ranking` | restaurant | `CREATE OR REPLACE` daily; split credit, `ranking_score = 0.7 × views gained 30d + 0.3 × like rate` (min-max within the city); `legit_score` 0–100 from Bayesian Google rating, review count, distinct channels, like rate, views 30d + `legit_label` |
@@ -151,16 +154,17 @@ Thêm vào Gold: `fact_google_review` (review × quán), `agg_restaurant_daily_v
 
 ### Daily job
 
-Job **"[dev] Project 1 — YouTube restaurants medallion (daily)"** (`resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, email khi lỗi, 27 tasks. Một task lỗi thì các task phía sau dừng:
+Job **"[dev] Project 1 — YouTube restaurants medallion (daily)"** (`resources/project1_daily.job.yml`), serverless, 01:00 `Asia/Ho_Chi_Minh`, email khi lỗi, 28 tasks. Một task lỗi thì các task phía sau dừng:
 
 ```
 auto_search → refresh_daily → fetch_comments → bronze_ingest
 osm_ingest → stg_osm_restaurants  (song song; chỉ gọi Overpass 1 lần / tuần)
 bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results / stg_places
-stg_videos → stg_video_classification → gold_dims → gold_facts
-gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details → stg_place_rating_reads
-stg_place_rating_reads + gold_restaurants → gold_rating_snapshot → run_summary
-gold_restaurants (dims + place details + places + OSM) → gold_checks → gold_agg_daily_views
+stg_videos → stg_video_classification → gold_dims → gold_facts → gold_agg_daily_snapshots
+gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details
+stg_restaurant_place_details + stg_places + gold_restaurants → gold_place_rating → run_summary
+gold_agg_daily_snapshots + gold_restaurants (dims + place details + places + OSM) → gold_checks → gold_agg_daily_views
+gold_checks + Silver → bronze_retention (7 ngày) → run_summary
 stg_comment_sentiment → gold_agg_comments
 gold_agg_daily_views + gold_agg_comments → gold_agg_ranking → run_summary
 ```
@@ -169,14 +173,14 @@ Guards: `refresh_daily.py` dừng **trước khi ghi** nếu API trả 0 dòng h
 
 ### Stats refresh trong ngày
 
-Job **"[dev] Project 1 — YouTube stats refresh (07/13/21h)"** (`resources/project1_stats_refresh.job.yml`), 07:00, 13:00, 21:00 `Asia/Ho_Chi_Minh` (01:00 do daily job làm), email khi lỗi, 7 tasks:
+Job **"[dev] Project 1 — YouTube stats refresh (07/13/21h)"** (`resources/project1_stats_refresh.job.yml`), 07:00, 13:00, 21:00 `Asia/Ho_Chi_Minh` (01:00 do daily job làm), email khi lỗi, 8 tasks:
 
 ```
 refresh_daily → bronze_ingest → stg_channels / stg_videos → gold_snapshot_facts (facts.ipynb, facts=snapshots)
-→ gold_agg_daily_views → gold_agg_ranking
+→ gold_agg_daily_snapshots → gold_agg_daily_views → gold_agg_ranking
 ```
 
-Grain vẫn là video × ngày: mỗi lần chạy ghi đè dòng của hôm nay (lần đọc mới nhất thắng); Bronze giữ mọi lần đọc. Video mới, dims, comment, transcript và checks vẫn chỉ chạy trong daily job (video mới tìm trong ngày có `video_key = -1` cho tới 01:00 hôm sau). Đo ngày 01/11: like / comment đổi gần như mỗi phút, view chỉ đổi theo đợt cách nhau vài giờ, nên không chạy theo giờ.
+Từ 02/11/2026 Silver và Gold fact giữ mọi lần đọc (`snapshot_ts`, insert-only), không ghi đè; chỉ tầng serving (`agg_video_daily`, `agg_channel_daily`) gom theo ngày (lần đọc cuối của ngày). Video mới, dims, comment, transcript và checks vẫn chỉ chạy trong daily job (video mới tìm trong ngày có `video_key = -1` cho tới 01:00 hôm sau). Đo ngày 01/11: like / comment đổi gần như mỗi phút, view chỉ đổi theo đợt cách nhau vài giờ, nên không chạy theo giờ.
 
 Secrets: scope `youtube` (`pg_password`, `api_key`), scope `maps` (`api_key`, Places API New). Job parameter `dry_run=true` gọi API nhưng không ghi.
 
