@@ -117,7 +117,7 @@ videos AS (   -- review videos per restaurant with their latest view count
   JOIN {GOLD}.dim_video v      ON v.video_key = m.video_key
   LEFT JOIN {GOLD}.dim_channel c ON c.channel_id = v.channel_id
   LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count
-             FROM {GOLD}.fact_video_daily_snapshot GROUP BY video_key) s ON s.video_key = m.video_key
+             FROM {GOLD}.agg_video_daily GROUP BY video_key) s ON s.video_key = m.video_key
   WHERE m.restaurant_key <> -1
 ),
 top_video AS (

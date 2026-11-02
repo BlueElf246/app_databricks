@@ -55,7 +55,7 @@
         "WITH latest AS (\n",
         "  SELECT video_key, view_count, like_count,\n",
         "         ROW_NUMBER() OVER (PARTITION BY video_key ORDER BY snapshot_date_key DESC) AS rn\n",
-        "  FROM fact_video_daily_snapshot\n",
+        "  FROM agg_video_daily\n",
         ")\n",
         "SELECT\n",
         "  cur.restaurant_name,\n",
