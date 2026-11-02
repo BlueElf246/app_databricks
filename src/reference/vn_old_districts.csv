@@ -1,0 +1,697 @@
+new_province_code,new_province,province_code,province_key,district_code,district,district_short,district_key,aliases
+01,Thành phố Hà Nội,01,thanhphohanoi,001,Quận Ba Đình,Ba Đình,quanbadinh,ba dinh|quan ba dinh
+01,Thành phố Hà Nội,01,thanhphohanoi,002,Quận Hoàn Kiếm,Hoàn Kiếm,quanhoankiem,hoan kiem|quan hoan kiem
+01,Thành phố Hà Nội,01,thanhphohanoi,003,Quận Tây Hồ,Tây Hồ,quantayho,quan tay ho|tay ho
+01,Thành phố Hà Nội,01,thanhphohanoi,004,Quận Long Biên,Long Biên,quanlongbien,long bien|quan long bien
+01,Thành phố Hà Nội,01,thanhphohanoi,005,Quận Cầu Giấy,Cầu Giấy,quancaugiay,cau giay|quan cau giay
+01,Thành phố Hà Nội,01,thanhphohanoi,006,Quận Đống Đa,Đống Đa,quandongda,dong da|quan dong da
+01,Thành phố Hà Nội,01,thanhphohanoi,007,Quận Hai Bà Trưng,Hai Bà Trưng,quanhaibatrung,hai ba trung|quan hai ba trung
+01,Thành phố Hà Nội,01,thanhphohanoi,008,Quận Hoàng Mai,Hoàng Mai,quanhoangmai,hoang mai|quan hoang mai
+01,Thành phố Hà Nội,01,thanhphohanoi,009,Quận Thanh Xuân,Thanh Xuân,quanthanhxuan,quan thanh xuan|thanh xuan
+01,Thành phố Hà Nội,01,thanhphohanoi,016,Huyện Sóc Sơn,Sóc Sơn,huyensocson,huyen soc son|soc son
+01,Thành phố Hà Nội,01,thanhphohanoi,017,Huyện Đông Anh,Đông Anh,huyendonganh,dong anh|huyen dong anh
+01,Thành phố Hà Nội,01,thanhphohanoi,018,Huyện Gia Lâm,Gia Lâm,huyengialam,gia lam|huyen gia lam
+01,Thành phố Hà Nội,01,thanhphohanoi,019,Quận Nam Từ Liêm,Nam Từ Liêm,quannamtuliem,nam tu liem|quan nam tu liem
+01,Thành phố Hà Nội,01,thanhphohanoi,020,Huyện Thanh Trì,Thanh Trì,huyenthanhtri,huyen thanh tri|thanh tri
+01,Thành phố Hà Nội,01,thanhphohanoi,021,Quận Bắc Từ Liêm,Bắc Từ Liêm,quanbactuliem,bac tu liem|quan bac tu liem
+08,Tỉnh Tuyên Quang,02,tinhhagiang,024,Thành phố Hà Giang,Hà Giang,thanhphohagiang,ha giang|thanh pho ha giang
+08,Tỉnh Tuyên Quang,02,tinhhagiang,026,Huyện Đồng Văn,Đồng Văn,huyendongvan,dong van|huyen dong van
+08,Tỉnh Tuyên Quang,02,tinhhagiang,027,Huyện Mèo Vạc,Mèo Vạc,huyenmeovac,huyen meo vac|meo vac
+08,Tỉnh Tuyên Quang,02,tinhhagiang,028,Huyện Yên Minh,Yên Minh,huyenyenminh,huyen yen minh|yen minh
+08,Tỉnh Tuyên Quang,02,tinhhagiang,029,Huyện Quản Bạ,Quản Bạ,huyenquanba,huyen quan ba|quan ba
+08,Tỉnh Tuyên Quang,02,tinhhagiang,030,Huyện Vị Xuyên,Vị Xuyên,huyenvixuyen,huyen vi xuyen|vi xuyen
+08,Tỉnh Tuyên Quang,02,tinhhagiang,031,Huyện Bắc Mê,Bắc Mê,huyenbacme,bac me|huyen bac me
+08,Tỉnh Tuyên Quang,02,tinhhagiang,032,Huyện Hoàng Su Phì,Hoàng Su Phì,huyenhoangsuphi,hoang su phi|huyen hoang su phi
+08,Tỉnh Tuyên Quang,02,tinhhagiang,033,Huyện Xín Mần,Xín Mần,huyenxinman,huyen xin man|xin man
+08,Tỉnh Tuyên Quang,02,tinhhagiang,034,Huyện Bắc Quang,Bắc Quang,huyenbacquang,bac quang|huyen bac quang
+08,Tỉnh Tuyên Quang,02,tinhhagiang,035,Huyện Quang Bình,Quang Bình,huyenquangbinh,huyen quang binh|quang binh
+04,Tỉnh Cao Bằng,04,tinhcaobang,040,Thành phố Cao Bằng,Cao Bằng,thanhphocaobang,cao bang|thanh pho cao bang
+04,Tỉnh Cao Bằng,04,tinhcaobang,042,Huyện Bảo Lâm,Bảo Lâm,huyenbaolam,bao lam|huyen bao lam
+04,Tỉnh Cao Bằng,04,tinhcaobang,043,Huyện Bảo Lạc,Bảo Lạc,huyenbaolac,bao lac|huyen bao lac
+04,Tỉnh Cao Bằng,04,tinhcaobang,045,Huyện Hà Quảng,Hà Quảng,huyenhaquang,ha quang|huyen ha quang
+04,Tỉnh Cao Bằng,04,tinhcaobang,047,Huyện Trùng Khánh,Trùng Khánh,huyentrungkhanh,huyen trung khanh|trung khanh
+04,Tỉnh Cao Bằng,04,tinhcaobang,048,Huyện Hạ Lang,Hạ Lang,huyenhalang,ha lang|huyen ha lang
+04,Tỉnh Cao Bằng,04,tinhcaobang,049,Huyện Quảng Hòa,Quảng Hòa,huyenquanghoa,huyen quang hoa|quang hoa
+04,Tỉnh Cao Bằng,04,tinhcaobang,051,Huyện Hòa An,Hòa An,huyenhoaan,hoa an|huyen hoa an
+04,Tỉnh Cao Bằng,04,tinhcaobang,052,Huyện Nguyên Bình,Nguyên Bình,huyennguyenbinh,huyen nguyen binh|nguyen binh
+04,Tỉnh Cao Bằng,04,tinhcaobang,053,Huyện Thạch An,Thạch An,huyenthachan,huyen thach an|thach an
+19,Tỉnh Thái Nguyên,06,tinhbackan,058,Thành Phố Bắc Kạn,Bắc Kạn,thanhphobackan,bac kan|thanh pho bac kan
+19,Tỉnh Thái Nguyên,06,tinhbackan,060,Huyện Pác Nặm,Pác Nặm,huyenpacnam,huyen pac nam|pac nam
+19,Tỉnh Thái Nguyên,06,tinhbackan,061,Huyện Ba Bể,Ba Bể,huyenbabe,ba be|huyen ba be
+19,Tỉnh Thái Nguyên,06,tinhbackan,062,Huyện Ngân Sơn,Ngân Sơn,huyennganson,huyen ngan son|ngan son
+19,Tỉnh Thái Nguyên,06,tinhbackan,063,Huyện Bạch Thông,Bạch Thông,huyenbachthong,bach thong|huyen bach thong
+19,Tỉnh Thái Nguyên,06,tinhbackan,064,Huyện Chợ Đồn,Chợ Đồn,huyenchodon,cho don|huyen cho don
+19,Tỉnh Thái Nguyên,06,tinhbackan,065,Huyện Chợ Mới,Chợ Mới,huyenchomoi,cho moi|huyen cho moi
+19,Tỉnh Thái Nguyên,06,tinhbackan,066,Huyện Na Rì,Na Rì,huyennari,huyen na ri|na ri
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,070,Thành phố Tuyên Quang,Tuyên Quang,thanhphotuyenquang,thanh pho tuyen quang|tuyen quang
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,071,Huyện Lâm Bình,Lâm Bình,huyenlambinh,huyen lam binh|lam binh
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,072,Huyện Na Hang,Na Hang,huyennahang,huyen na hang|na hang
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,073,Huyện Chiêm Hóa,Chiêm Hóa,huyenchiemhoa,chiem hoa|huyen chiem hoa
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,074,Huyện Hàm Yên,Hàm Yên,huyenhamyen,ham yen|huyen ham yen
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,075,Huyện Yên Sơn,Yên Sơn,huyenyenson,huyen yen son|yen son
+08,Tỉnh Tuyên Quang,08,tinhtuyenquang,076,Huyện Sơn Dương,Sơn Dương,huyensonduong,huyen son duong|son duong
+15,Tỉnh Lào Cai,10,tinhlaocai,080,Thành phố Lào Cai,Lào Cai,thanhpholaocai,lao cai|thanh pho lao cai
+15,Tỉnh Lào Cai,10,tinhlaocai,082,Huyện Bát Xát,Bát Xát,huyenbatxat,bat xat|huyen bat xat
+15,Tỉnh Lào Cai,10,tinhlaocai,083,Huyện Mường Khương,Mường Khương,huyenmuongkhuong,huyen muong khuong|muong khuong
+15,Tỉnh Lào Cai,10,tinhlaocai,084,Huyện Si Ma Cai,Si Ma Cai,huyensimacai,huyen si ma cai|si ma cai
+15,Tỉnh Lào Cai,10,tinhlaocai,085,Huyện Bắc Hà,Bắc Hà,huyenbacha,bac ha|huyen bac ha
+15,Tỉnh Lào Cai,10,tinhlaocai,086,Huyện Bảo Thắng,Bảo Thắng,huyenbaothang,bao thang|huyen bao thang
+15,Tỉnh Lào Cai,10,tinhlaocai,087,Huyện Bảo Yên,Bảo Yên,huyenbaoyen,bao yen|huyen bao yen
+15,Tỉnh Lào Cai,10,tinhlaocai,088,Thị xã Sa Pa,Sa Pa,thixasapa,sa pa|thi xa sa pa
+15,Tỉnh Lào Cai,10,tinhlaocai,089,Huyện Văn Bàn,Văn Bàn,huyenvanban,huyen van ban|van ban
+11,Tỉnh Điện Biên,11,tinhdienbien,094,Thành phố Điện Biên Phủ,Điện Biên Phủ,thanhphodienbienphu,dien bien phu|thanh pho dien bien phu
+11,Tỉnh Điện Biên,11,tinhdienbien,095,Thị Xã Mường Lay,Mường Lay,thixamuonglay,muong lay|thi xa muong lay
+11,Tỉnh Điện Biên,11,tinhdienbien,096,Huyện Mường Nhé,Mường Nhé,huyenmuongnhe,huyen muong nhe|muong nhe
+11,Tỉnh Điện Biên,11,tinhdienbien,097,Huyện Mường Chà,Mường Chà,huyenmuongcha,huyen muong cha|muong cha
+11,Tỉnh Điện Biên,11,tinhdienbien,098,Huyện Tủa Chùa,Tủa Chùa,huyentuachua,huyen tua chua|tua chua
+11,Tỉnh Điện Biên,11,tinhdienbien,099,Huyện Tuần Giáo,Tuần Giáo,huyentuangiao,huyen tuan giao|tuan giao
+11,Tỉnh Điện Biên,11,tinhdienbien,100,Huyện Điện Biên,Điện Biên,huyendienbien,dien bien|huyen dien bien
+11,Tỉnh Điện Biên,11,tinhdienbien,101,Huyện Điện Biên Đông,Điện Biên Đông,huyendienbiendong,dien bien dong|huyen dien bien dong
+11,Tỉnh Điện Biên,11,tinhdienbien,102,Huyện Mường Ảng,Mường Ảng,huyenmuongang,huyen muong ang|muong ang
+11,Tỉnh Điện Biên,11,tinhdienbien,103,Huyện Nậm Pồ,Nậm Pồ,huyennampo,huyen nam po|nam po
+12,Tỉnh Lai Châu,12,tinhlaichau,105,Thành phố Lai Châu,Lai Châu,thanhpholaichau,lai chau|thanh pho lai chau
+12,Tỉnh Lai Châu,12,tinhlaichau,106,Huyện Tam Đường,Tam Đường,huyentamduong,huyen tam duong|tam duong
+12,Tỉnh Lai Châu,12,tinhlaichau,107,Huyện Mường Tè,Mường Tè,huyenmuongte,huyen muong te|muong te
+12,Tỉnh Lai Châu,12,tinhlaichau,108,Huyện Sìn Hồ,Sìn Hồ,huyensinho,huyen sin ho|sin ho
+12,Tỉnh Lai Châu,12,tinhlaichau,109,Huyện Phong Thổ,Phong Thổ,huyenphongtho,huyen phong tho|phong tho
+12,Tỉnh Lai Châu,12,tinhlaichau,110,Huyện Than Uyên,Than Uyên,huyenthanuyen,huyen than uyen|than uyen
+12,Tỉnh Lai Châu,12,tinhlaichau,111,Huyện Tân Uyên,Tân Uyên,huyentanuyen,huyen tan uyen|tan uyen
+12,Tỉnh Lai Châu,12,tinhlaichau,112,Huyện Nậm Nhùn,Nậm Nhùn,huyennamnhun,huyen nam nhun|nam nhun
+14,Tỉnh Sơn La,14,tinhsonla,116,Thành phố Sơn La,Sơn La,thanhphosonla,son la|thanh pho son la
+14,Tỉnh Sơn La,14,tinhsonla,118,Huyện Quỳnh Nhai,Quỳnh Nhai,huyenquynhnhai,huyen quynh nhai|quynh nhai
+14,Tỉnh Sơn La,14,tinhsonla,119,Huyện Thuận Châu,Thuận Châu,huyenthuanchau,huyen thuan chau|thuan chau
+14,Tỉnh Sơn La,14,tinhsonla,120,Huyện Mường La,Mường La,huyenmuongla,huyen muong la|muong la
+14,Tỉnh Sơn La,14,tinhsonla,121,Huyện Bắc Yên,Bắc Yên,huyenbacyen,bac yen|huyen bac yen
+14,Tỉnh Sơn La,14,tinhsonla,122,Huyện Phù Yên,Phù Yên,huyenphuyen,huyen phu yen|phu yen
+14,Tỉnh Sơn La,14,tinhsonla,123,Thị xã Mộc Châu,Mộc Châu,thixamocchau,moc chau|thi xa moc chau
+14,Tỉnh Sơn La,14,tinhsonla,124,Huyện Yên Châu,Yên Châu,huyenyenchau,huyen yen chau|yen chau
+14,Tỉnh Sơn La,14,tinhsonla,125,Huyện Mai Sơn,Mai Sơn,huyenmaison,huyen mai son|mai son
+14,Tỉnh Sơn La,14,tinhsonla,126,Huyện Sông Mã,Sông Mã,huyensongma,huyen song ma|song ma
+14,Tỉnh Sơn La,14,tinhsonla,127,Huyện Sốp Cộp,Sốp Cộp,huyensopcop,huyen sop cop|sop cop
+14,Tỉnh Sơn La,14,tinhsonla,128,Huyện Vân Hồ,Vân Hồ,huyenvanho,huyen van ho|van ho
+15,Tỉnh Lào Cai,15,tinhyenbai,132,Thành phố Yên Bái,Yên Bái,thanhphoyenbai,thanh pho yen bai|yen bai
+15,Tỉnh Lào Cai,15,tinhyenbai,133,Thị xã Nghĩa Lộ,Nghĩa Lộ,thixanghialo,nghia lo|thi xa nghia lo
+15,Tỉnh Lào Cai,15,tinhyenbai,135,Huyện Lục Yên,Lục Yên,huyenlucyen,huyen luc yen|luc yen
+15,Tỉnh Lào Cai,15,tinhyenbai,136,Huyện Văn Yên,Văn Yên,huyenvanyen,huyen van yen|van yen
+15,Tỉnh Lào Cai,15,tinhyenbai,137,Huyện Mù Căng Chải,Mù Căng Chải,huyenmucangchai,huyen mu cang chai|mu cang chai
+15,Tỉnh Lào Cai,15,tinhyenbai,138,Huyện Trấn Yên,Trấn Yên,huyentranyen,huyen tran yen|tran yen
+15,Tỉnh Lào Cai,15,tinhyenbai,139,Huyện Trạm Tấu,Trạm Tấu,huyentramtau,huyen tram tau|tram tau
+15,Tỉnh Lào Cai,15,tinhyenbai,140,Huyện Văn Chấn,Văn Chấn,huyenvanchan,huyen van chan|van chan
+15,Tỉnh Lào Cai,15,tinhyenbai,141,Huyện Yên Bình,Yên Bình,huyenyenbinh,huyen yen binh|yen binh
+25,Tỉnh Phú Thọ,17,tinhhoabinh,148,Thành phố Hòa Bình,Hòa Bình,thanhphohoabinh,hoa binh|thanh pho hoa binh
+25,Tỉnh Phú Thọ,17,tinhhoabinh,150,Huyện Đà Bắc,Đà Bắc,huyendabac,da bac|huyen da bac
+25,Tỉnh Phú Thọ,17,tinhhoabinh,152,Huyện Lương Sơn,Lương Sơn,huyenluongson,huyen luong son|luong son
+25,Tỉnh Phú Thọ,17,tinhhoabinh,153,Huyện Kim Bôi,Kim Bôi,huyenkimboi,huyen kim boi|kim boi
+25,Tỉnh Phú Thọ,17,tinhhoabinh,154,Huyện Cao Phong,Cao Phong,huyencaophong,cao phong|huyen cao phong
+25,Tỉnh Phú Thọ,17,tinhhoabinh,155,Huyện Tân Lạc,Tân Lạc,huyentanlac,huyen tan lac|tan lac
+25,Tỉnh Phú Thọ,17,tinhhoabinh,156,Huyện Mai Châu,Mai Châu,huyenmaichau,huyen mai chau|mai chau
+25,Tỉnh Phú Thọ,17,tinhhoabinh,157,Huyện Lạc Sơn,Lạc Sơn,huyenlacson,huyen lac son|lac son
+25,Tỉnh Phú Thọ,17,tinhhoabinh,158,Huyện Yên Thủy,Yên Thủy,huyenyenthuy,huyen yen thuy|yen thuy
+25,Tỉnh Phú Thọ,17,tinhhoabinh,159,Huyện Lạc Thủy,Lạc Thủy,huyenlacthuy,huyen lac thuy|lac thuy
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,164,Thành phố Thái Nguyên,Thái Nguyên,thanhphothainguyen,thai nguyen|thanh pho thai nguyen
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,165,Thành phố Sông Công,Sông Công,thanhphosongcong,song cong|thanh pho song cong
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,167,Huyện Định Hóa,Định Hóa,huyendinhhoa,dinh hoa|huyen dinh hoa
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,168,Huyện Phú Lương,Phú Lương,huyenphuluong,huyen phu luong|phu luong
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,169,Huyện Đồng Hỷ,Đồng Hỷ,huyendonghy,dong hy|huyen dong hy
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,170,Huyện Võ Nhai,Võ Nhai,huyenvonhai,huyen vo nhai|vo nhai
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,171,Huyện Đại Từ,Đại Từ,huyendaitu,dai tu|huyen dai tu
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,172,Thành phố Phổ Yên,Phổ Yên,thanhphophoyen,pho yen|thanh pho pho yen
+19,Tỉnh Thái Nguyên,19,tinhthainguyen,173,Huyện Phú Bình,Phú Bình,huyenphubinh,huyen phu binh|phu binh
+20,Tỉnh Lạng Sơn,20,tinhlangson,178,Thành phố Lạng Sơn,Lạng Sơn,thanhpholangson,lang son|thanh pho lang son
+20,Tỉnh Lạng Sơn,20,tinhlangson,180,Huyện Tràng Định,Tràng Định,huyentrangdinh,huyen trang dinh|trang dinh
+20,Tỉnh Lạng Sơn,20,tinhlangson,181,Huyện Bình Gia,Bình Gia,huyenbinhgia,binh gia|huyen binh gia
+20,Tỉnh Lạng Sơn,20,tinhlangson,182,Huyện Văn Lãng,Văn Lãng,huyenvanlang,huyen van lang|van lang
+20,Tỉnh Lạng Sơn,20,tinhlangson,183,Huyện Cao Lộc,Cao Lộc,huyencaoloc,cao loc|huyen cao loc
+20,Tỉnh Lạng Sơn,20,tinhlangson,184,Huyện Văn Quan,Văn Quan,huyenvanquan,huyen van quan|van quan
+20,Tỉnh Lạng Sơn,20,tinhlangson,185,Huyện Bắc Sơn,Bắc Sơn,huyenbacson,bac son|huyen bac son
+20,Tỉnh Lạng Sơn,20,tinhlangson,186,Huyện Hữu Lũng,Hữu Lũng,huyenhuulung,huu lung|huyen huu lung
+20,Tỉnh Lạng Sơn,20,tinhlangson,187,Huyện Chi Lăng,Chi Lăng,huyenchilang,chi lang|huyen chi lang
+20,Tỉnh Lạng Sơn,20,tinhlangson,188,Huyện Lộc Bình,Lộc Bình,huyenlocbinh,huyen loc binh|loc binh
+20,Tỉnh Lạng Sơn,20,tinhlangson,189,Huyện Đình Lập,Đình Lập,huyendinhlap,dinh lap|huyen dinh lap
+22,Tỉnh Quảng Ninh,22,tinhquangninh,193,Thành phố Hạ Long,Hạ Long,thanhphohalong,ha long|thanh pho ha long
+22,Tỉnh Quảng Ninh,22,tinhquangninh,194,Thành phố Móng Cái,Móng Cái,thanhphomongcai,mong cai|thanh pho mong cai
+22,Tỉnh Quảng Ninh,22,tinhquangninh,195,Thành phố Cẩm Phả,Cẩm Phả,thanhphocampha,cam pha|thanh pho cam pha
+22,Tỉnh Quảng Ninh,22,tinhquangninh,196,Thành phố Uông Bí,Uông Bí,thanhphouongbi,thanh pho uong bi|uong bi
+22,Tỉnh Quảng Ninh,22,tinhquangninh,198,Huyện Bình Liêu,Bình Liêu,huyenbinhlieu,binh lieu|huyen binh lieu
+22,Tỉnh Quảng Ninh,22,tinhquangninh,199,Huyện Tiên Yên,Tiên Yên,huyentienyen,huyen tien yen|tien yen
+22,Tỉnh Quảng Ninh,22,tinhquangninh,200,Huyện Đầm Hà,Đầm Hà,huyendamha,dam ha|huyen dam ha
+22,Tỉnh Quảng Ninh,22,tinhquangninh,201,Huyện Hải Hà,Hải Hà,huyenhaiha,hai ha|huyen hai ha
+22,Tỉnh Quảng Ninh,22,tinhquangninh,202,Huyện Ba Chẽ,Ba Chẽ,huyenbache,ba che|huyen ba che
+22,Tỉnh Quảng Ninh,22,tinhquangninh,203,Huyện Vân Đồn,Vân Đồn,huyenvandon,huyen van don|van don
+22,Tỉnh Quảng Ninh,22,tinhquangninh,205,Thành phố Đông Triều,Đông Triều,thanhphodongtrieu,dong trieu|thanh pho dong trieu
+22,Tỉnh Quảng Ninh,22,tinhquangninh,206,Thị xã Quảng Yên,Quảng Yên,thixaquangyen,quang yen|thi xa quang yen
+22,Tỉnh Quảng Ninh,22,tinhquangninh,207,Huyện Cô Tô,Cô Tô,huyencoto,co to|huyen co to
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,213,Thành phố Bắc Giang,Bắc Giang,thanhphobacgiang,bac giang|thanh pho bac giang
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,215,Huyện Yên Thế,Yên Thế,huyenyenthe,huyen yen the|yen the
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,216,Huyện Tân Yên,Tân Yên,huyentanyen,huyen tan yen|tan yen
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,217,Huyện Lạng Giang,Lạng Giang,huyenlanggiang,huyen lang giang|lang giang
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,218,Huyện Lục Nam,Lục Nam,huyenlucnam,huyen luc nam|luc nam
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,219,Huyện Lục Ngạn,Lục Ngạn,huyenlucngan,huyen luc ngan|luc ngan
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,220,Huyện Sơn Động,Sơn Động,huyensondong,huyen son dong|son dong
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,222,Thị Xã Việt Yên,Việt Yên,thixavietyen,thi xa viet yen|viet yen
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,223,Huyện Hiệp Hòa,Hiệp Hòa,huyenhiephoa,hiep hoa|huyen hiep hoa
+24,Tỉnh Bắc Ninh,24,tinhbacgiang,224,Thị xã Chũ,Chũ,thixachu,chu|thi xa chu
+25,Tỉnh Phú Thọ,25,tinhphutho,227,Thành phố Việt Trì,Việt Trì,thanhphoviettri,thanh pho viet tri|viet tri
+25,Tỉnh Phú Thọ,25,tinhphutho,228,Thị xã Phú Thọ,Phú Thọ,thixaphutho,phu tho|thi xa phu tho
+25,Tỉnh Phú Thọ,25,tinhphutho,230,Huyện Đoan Hùng,Đoan Hùng,huyendoanhung,doan hung|huyen doan hung
+25,Tỉnh Phú Thọ,25,tinhphutho,231,Huyện Hạ Hòa,Hạ Hòa,huyenhahoa,ha hoa|huyen ha hoa
+25,Tỉnh Phú Thọ,25,tinhphutho,232,Huyện Thanh Ba,Thanh Ba,huyenthanhba,huyen thanh ba|thanh ba
+25,Tỉnh Phú Thọ,25,tinhphutho,233,Huyện Phù Ninh,Phù Ninh,huyenphuninh,huyen phu ninh|phu ninh
+25,Tỉnh Phú Thọ,25,tinhphutho,234,Huyện Yên Lập,Yên Lập,huyenyenlap,huyen yen lap|yen lap
+25,Tỉnh Phú Thọ,25,tinhphutho,235,Huyện Cẩm Khê,Cẩm Khê,huyencamkhe,cam khe|huyen cam khe
+25,Tỉnh Phú Thọ,25,tinhphutho,236,Huyện Tam Nông,Tam Nông,huyentamnong,huyen tam nong|tam nong
+25,Tỉnh Phú Thọ,25,tinhphutho,237,Huyện Lâm Thao,Lâm Thao,huyenlamthao,huyen lam thao|lam thao
+25,Tỉnh Phú Thọ,25,tinhphutho,238,Huyện Thanh Sơn,Thanh Sơn,huyenthanhson,huyen thanh son|thanh son
+25,Tỉnh Phú Thọ,25,tinhphutho,239,Huyện Thanh Thủy,Thanh Thủy,huyenthanhthuy,huyen thanh thuy|thanh thuy
+25,Tỉnh Phú Thọ,25,tinhphutho,240,Huyện Tân Sơn,Tân Sơn,huyentanson,huyen tan son|tan son
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,243,Thành phố Vĩnh Yên,Vĩnh Yên,thanhphovinhyen,thanh pho vinh yen|vinh yen
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,244,Thành phố Phúc Yên,Phúc Yên,thanhphophucyen,phuc yen|thanh pho phuc yen
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,246,Huyện Lập Thạch,Lập Thạch,huyenlapthach,huyen lap thach|lap thach
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,247,Huyện Tam Dương,Tam Dương,huyentamduong,huyen tam duong|tam duong
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,248,Huyện Tam Đảo,Tam Đảo,huyentamdao,huyen tam dao|tam dao
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,249,Huyện Bình Xuyên,Bình Xuyên,huyenbinhxuyen,binh xuyen|huyen binh xuyen
+01,Thành phố Hà Nội,01,thanhphohanoi,250,Huyện Mê Linh,Mê Linh,huyenmelinh,huyen me linh|me linh
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,251,Huyện Yên Lạc,Yên Lạc,huyenyenlac,huyen yen lac|yen lac
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,252,Huyện Vĩnh Tường,Vĩnh Tường,huyenvinhtuong,huyen vinh tuong|vinh tuong
+25,Tỉnh Phú Thọ,26,tinhvinhphuc,253,Huyện Sông Lô,Sông Lô,huyensonglo,huyen song lo|song lo
+24,Tỉnh Bắc Ninh,27,tinhbacninh,256,Thành phố Bắc Ninh,Bắc Ninh,thanhphobacninh,bac ninh|thanh pho bac ninh
+24,Tỉnh Bắc Ninh,27,tinhbacninh,258,Huyện Yên Phong,Yên Phong,huyenyenphong,huyen yen phong|yen phong
+24,Tỉnh Bắc Ninh,27,tinhbacninh,259,Thị xã Quế Võ,Quế Võ,thixaquevo,que vo|thi xa que vo
+24,Tỉnh Bắc Ninh,27,tinhbacninh,260,Huyện Tiên Du,Tiên Du,huyentiendu,huyen tien du|tien du
+24,Tỉnh Bắc Ninh,27,tinhbacninh,261,Thành phố Từ Sơn,Từ Sơn,thanhphotuson,thanh pho tu son|tu son
+24,Tỉnh Bắc Ninh,27,tinhbacninh,262,Thị xã Thuận Thành,Thuận Thành,thixathuanthanh,thi xa thuan thanh|thuan thanh
+24,Tỉnh Bắc Ninh,27,tinhbacninh,263,Huyện Gia Bình,Gia Bình,huyengiabinh,gia binh|huyen gia binh
+24,Tỉnh Bắc Ninh,27,tinhbacninh,264,Huyện Lương Tài,Lương Tài,huyenluongtai,huyen luong tai|luong tai
+01,Thành phố Hà Nội,01,thanhphohanoi,268,Quận Hà Đông,Hà Đông,quanhadong,ha dong|quan ha dong
+01,Thành phố Hà Nội,01,thanhphohanoi,269,Thị xã Sơn Tây,Sơn Tây,thixasontay,son tay|thi xa son tay
+01,Thành phố Hà Nội,01,thanhphohanoi,271,Huyện Ba Vì,Ba Vì,huyenbavi,ba vi|huyen ba vi
+01,Thành phố Hà Nội,01,thanhphohanoi,272,Huyện Phúc Thọ,Phúc Thọ,huyenphuctho,huyen phuc tho|phuc tho
+01,Thành phố Hà Nội,01,thanhphohanoi,273,Huyện Đan Phượng,Đan Phượng,huyendanphuong,dan phuong|huyen dan phuong
+01,Thành phố Hà Nội,01,thanhphohanoi,274,Huyện Hoài Đức,Hoài Đức,huyenhoaiduc,hoai duc|huyen hoai duc
+01,Thành phố Hà Nội,01,thanhphohanoi,275,Huyện Quốc Oai,Quốc Oai,huyenquocoai,huyen quoc oai|quoc oai
+01,Thành phố Hà Nội,01,thanhphohanoi,276,Huyện Thạch Thất,Thạch Thất,huyenthachthat,huyen thach that|thach that
+01,Thành phố Hà Nội,01,thanhphohanoi,277,Huyện Chương Mỹ,Chương Mỹ,huyenchuongmy,chuong my|huyen chuong my
+01,Thành phố Hà Nội,01,thanhphohanoi,278,Huyện Thanh Oai,Thanh Oai,huyenthanhoai,huyen thanh oai|thanh oai
+01,Thành phố Hà Nội,01,thanhphohanoi,279,Huyện Thường Tín,Thường Tín,huyenthuongtin,huyen thuong tin|thuong tin
+01,Thành phố Hà Nội,01,thanhphohanoi,280,Huyện Phú Xuyên,Phú Xuyên,huyenphuxuyen,huyen phu xuyen|phu xuyen
+01,Thành phố Hà Nội,01,thanhphohanoi,281,Huyện Ứng Hòa,Ứng Hòa,huyenunghoa,huyen ung hoa|ung hoa
+01,Thành phố Hà Nội,01,thanhphohanoi,282,Huyện Mỹ Đức,Mỹ Đức,huyenmyduc,huyen my duc|my duc
+31,Thành phố Hải Phòng,30,tinhhaiduong,288,Thành phố Hải Dương,Hải Dương,thanhphohaiduong,hai duong|thanh pho hai duong
+31,Thành phố Hải Phòng,30,tinhhaiduong,290,Thành phố Chí Linh,Chí Linh,thanhphochilinh,chi linh|thanh pho chi linh
+31,Thành phố Hải Phòng,30,tinhhaiduong,291,Huyện Nam Sách,Nam Sách,huyennamsach,huyen nam sach|nam sach
+31,Thành phố Hải Phòng,30,tinhhaiduong,292,Thị xã Kinh Môn,Kinh Môn,thixakinhmon,kinh mon|thi xa kinh mon
+31,Thành phố Hải Phòng,30,tinhhaiduong,293,Huyện Kim Thành,Kim Thành,huyenkimthanh,huyen kim thanh|kim thanh
+31,Thành phố Hải Phòng,30,tinhhaiduong,294,Huyện Thanh Hà,Thanh Hà,huyenthanhha,huyen thanh ha|thanh ha
+31,Thành phố Hải Phòng,30,tinhhaiduong,295,Huyện Cẩm Giàng,Cẩm Giàng,huyencamgiang,cam giang|huyen cam giang
+31,Thành phố Hải Phòng,30,tinhhaiduong,296,Huyện Bình Giang,Bình Giang,huyenbinhgiang,binh giang|huyen binh giang
+31,Thành phố Hải Phòng,30,tinhhaiduong,297,Huyện Gia Lộc,Gia Lộc,huyengialoc,gia loc|huyen gia loc
+31,Thành phố Hải Phòng,30,tinhhaiduong,298,Huyện Tứ Kỳ,Tứ Kỳ,huyentuky,huyen tu ky|tu ky
+31,Thành phố Hải Phòng,30,tinhhaiduong,299,Huyện Ninh Giang,Ninh Giang,huyenninhgiang,huyen ninh giang|ninh giang
+31,Thành phố Hải Phòng,30,tinhhaiduong,300,Huyện Thanh Miện,Thanh Miện,huyenthanhmien,huyen thanh mien|thanh mien
+31,Thành phố Hải Phòng,31,thanhphohaiphong,303,Quận Hồng Bàng,Hồng Bàng,quanhongbang,hong bang|quan hong bang
+31,Thành phố Hải Phòng,31,thanhphohaiphong,304,Quận Ngô Quyền,Ngô Quyền,quanngoquyen,ngo quyen|quan ngo quyen
+31,Thành phố Hải Phòng,31,thanhphohaiphong,305,Quận Lê Chân,Lê Chân,quanlechan,le chan|quan le chan
+31,Thành phố Hải Phòng,31,thanhphohaiphong,306,Quận Hải An,Hải An,quanhaian,hai an|quan hai an
+31,Thành phố Hải Phòng,31,thanhphohaiphong,307,Quận Kiến An,Kiến An,quankienan,kien an|quan kien an
+31,Thành phố Hải Phòng,31,thanhphohaiphong,308,Quận Đồ Sơn,Đồ Sơn,quandoson,do son|quan do son
+31,Thành phố Hải Phòng,31,thanhphohaiphong,309,Quận Dương Kinh,Dương Kinh,quanduongkinh,duong kinh|quan duong kinh
+31,Thành phố Hải Phòng,31,thanhphohaiphong,311,Thành phố Thủy Nguyên,Thủy Nguyên,thanhphothuynguyen,thanh pho thuy nguyen|thuy nguyen
+31,Thành phố Hải Phòng,31,thanhphohaiphong,312,Quận An Dương,An Dương,quananduong,an duong|quan an duong
+31,Thành phố Hải Phòng,31,thanhphohaiphong,313,Huyện An Lão,An Lão,huyenanlao,an lao|huyen an lao
+31,Thành phố Hải Phòng,31,thanhphohaiphong,314,Huyện Kiến Thụy,Kiến Thụy,huyenkienthuy,huyen kien thuy|kien thuy
+31,Thành phố Hải Phòng,31,thanhphohaiphong,315,Huyện Tiên Lãng,Tiên Lãng,huyentienlang,huyen tien lang|tien lang
+31,Thành phố Hải Phòng,31,thanhphohaiphong,316,Huyện Vĩnh Bảo,Vĩnh Bảo,huyenvinhbao,huyen vinh bao|vinh bao
+31,Thành phố Hải Phòng,31,thanhphohaiphong,317,Huyện Cát Hải,Cát Hải,huyencathai,cat hai|huyen cat hai
+31,Thành phố Hải Phòng,31,thanhphohaiphong,318,Huyện Bạch Long Vĩ,Bạch Long Vĩ,huyenbachlongvi,bach long vi|huyen bach long vi
+33,Tỉnh Hưng Yên,33,tinhhungyen,323,Thành phố Hưng Yên,Hưng Yên,thanhphohungyen,hung yen|thanh pho hung yen
+33,Tỉnh Hưng Yên,33,tinhhungyen,325,Huyện Văn Lâm,Văn Lâm,huyenvanlam,huyen van lam|van lam
+33,Tỉnh Hưng Yên,33,tinhhungyen,326,Huyện Văn Giang,Văn Giang,huyenvangiang,huyen van giang|van giang
+33,Tỉnh Hưng Yên,33,tinhhungyen,327,Huyện Yên Mỹ,Yên Mỹ,huyenyenmy,huyen yen my|yen my
+33,Tỉnh Hưng Yên,33,tinhhungyen,328,Thị xã Mỹ Hào,Mỹ Hào,thixamyhao,my hao|thi xa my hao
+33,Tỉnh Hưng Yên,33,tinhhungyen,329,Huyện Ân Thi,Ân Thi,huyenanthi,an thi|huyen an thi
+33,Tỉnh Hưng Yên,33,tinhhungyen,330,Huyện Khoái Châu,Khoái Châu,huyenkhoaichau,huyen khoai chau|khoai chau
+33,Tỉnh Hưng Yên,33,tinhhungyen,331,Huyện Kim Động,Kim Động,huyenkimdong,huyen kim dong|kim dong
+33,Tỉnh Hưng Yên,33,tinhhungyen,332,Huyện Tiên Lữ,Tiên Lữ,huyentienlu,huyen tien lu|tien lu
+33,Tỉnh Hưng Yên,33,tinhhungyen,333,Huyện Phù Cừ,Phù Cừ,huyenphucu,huyen phu cu|phu cu
+33,Tỉnh Hưng Yên,34,tinhthaibinh,336,Thành phố Thái Bình,Thái Bình,thanhphothaibinh,thai binh|thanh pho thai binh
+33,Tỉnh Hưng Yên,34,tinhthaibinh,338,Huyện Quỳnh Phụ,Quỳnh Phụ,huyenquynhphu,huyen quynh phu|quynh phu
+33,Tỉnh Hưng Yên,34,tinhthaibinh,339,Huyện Hưng Hà,Hưng Hà,huyenhungha,hung ha|huyen hung ha
+33,Tỉnh Hưng Yên,34,tinhthaibinh,340,Huyện Đông Hưng,Đông Hưng,huyendonghung,dong hung|huyen dong hung
+33,Tỉnh Hưng Yên,34,tinhthaibinh,341,Huyện Thái Thụy,Thái Thụy,huyenthaithuy,huyen thai thuy|thai thuy
+33,Tỉnh Hưng Yên,34,tinhthaibinh,342,Huyện Tiền Hải,Tiền Hải,huyentienhai,huyen tien hai|tien hai
+33,Tỉnh Hưng Yên,34,tinhthaibinh,343,Huyện Kiến Xương,Kiến Xương,huyenkienxuong,huyen kien xuong|kien xuong
+33,Tỉnh Hưng Yên,34,tinhthaibinh,344,Huyện Vũ Thư,Vũ Thư,huyenvuthu,huyen vu thu|vu thu
+37,Tỉnh Ninh Bình,35,tinhhanam,347,Thành phố Phủ Lý,Phủ Lý,thanhphophuly,phu ly|thanh pho phu ly
+37,Tỉnh Ninh Bình,35,tinhhanam,349,Thị xã Duy Tiên,Duy Tiên,thixaduytien,duy tien|thi xa duy tien
+37,Tỉnh Ninh Bình,35,tinhhanam,350,Thị xã Kim Bảng,Kim Bảng,thixakimbang,kim bang|thi xa kim bang
+37,Tỉnh Ninh Bình,35,tinhhanam,351,Huyện Thanh Liêm,Thanh Liêm,huyenthanhliem,huyen thanh liem|thanh liem
+37,Tỉnh Ninh Bình,35,tinhhanam,352,Huyện Bình Lục,Bình Lục,huyenbinhluc,binh luc|huyen binh luc
+37,Tỉnh Ninh Bình,35,tinhhanam,353,Huyện Lý Nhân,Lý Nhân,huyenlynhan,huyen ly nhan|ly nhan
+37,Tỉnh Ninh Bình,36,tinhnamdinh,356,Thành phố Nam Định,Nam Định,thanhphonamdinh,nam dinh|thanh pho nam dinh
+37,Tỉnh Ninh Bình,36,tinhnamdinh,359,Huyện Vụ Bản,Vụ Bản,huyenvuban,huyen vu ban|vu ban
+37,Tỉnh Ninh Bình,36,tinhnamdinh,360,Huyện Ý Yên,Ý Yên,huyenyyen,huyen y yen|y yen
+37,Tỉnh Ninh Bình,36,tinhnamdinh,361,Huyện Nghĩa Hưng,Nghĩa Hưng,huyennghiahung,huyen nghia hung|nghia hung
+37,Tỉnh Ninh Bình,36,tinhnamdinh,362,Huyện Nam Trực,Nam Trực,huyennamtruc,huyen nam truc|nam truc
+37,Tỉnh Ninh Bình,36,tinhnamdinh,363,Huyện Trực Ninh,Trực Ninh,huyentrucninh,huyen truc ninh|truc ninh
+37,Tỉnh Ninh Bình,36,tinhnamdinh,364,Huyện Xuân Trường,Xuân Trường,huyenxuantruong,huyen xuan truong|xuan truong
+37,Tỉnh Ninh Bình,36,tinhnamdinh,365,Huyện Giao Thủy,Giao Thủy,huyengiaothuy,giao thuy|huyen giao thuy
+37,Tỉnh Ninh Bình,36,tinhnamdinh,366,Huyện Hải Hậu,Hải Hậu,huyenhaihau,hai hau|huyen hai hau
+37,Tỉnh Ninh Bình,37,tinhninhbinh,370,Thành phố Tam Điệp,Tam Điệp,thanhphotamdiep,tam diep|thanh pho tam diep
+37,Tỉnh Ninh Bình,37,tinhninhbinh,372,Huyện Nho Quan,Nho Quan,huyennhoquan,huyen nho quan|nho quan
+37,Tỉnh Ninh Bình,37,tinhninhbinh,373,Huyện Gia Viễn,Gia Viễn,huyengiavien,gia vien|huyen gia vien
+37,Tỉnh Ninh Bình,37,tinhninhbinh,374,Thành phố Hoa Lư,Hoa Lư,thanhphohoalu,hoa lu|thanh pho hoa lu
+37,Tỉnh Ninh Bình,37,tinhninhbinh,375,Huyện Yên Khánh,Yên Khánh,huyenyenkhanh,huyen yen khanh|yen khanh
+37,Tỉnh Ninh Bình,37,tinhninhbinh,376,Huyện Kim Sơn,Kim Sơn,huyenkimson,huyen kim son|kim son
+37,Tỉnh Ninh Bình,37,tinhninhbinh,377,Huyện Yên Mô,Yên Mô,huyenyenmo,huyen yen mo|yen mo
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,380,Thành phố Thanh Hóa,Thanh Hóa,thanhphothanhhoa,thanh hoa|thanh pho thanh hoa
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,381,Thị xã Bỉm Sơn,Bỉm Sơn,thixabimson,bim son|thi xa bim son
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,382,Thành phố Sầm Sơn,Sầm Sơn,thanhphosamson,sam son|thanh pho sam son
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,384,Huyện Mường Lát,Mường Lát,huyenmuonglat,huyen muong lat|muong lat
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,385,Huyện Quan Hóa,Quan Hóa,huyenquanhoa,huyen quan hoa|quan hoa
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,386,Huyện Bá Thước,Bá Thước,huyenbathuoc,ba thuoc|huyen ba thuoc
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,387,Huyện Quan Sơn,Quan Sơn,huyenquanson,huyen quan son|quan son
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,388,Huyện Lang Chánh,Lang Chánh,huyenlangchanh,huyen lang chanh|lang chanh
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,389,Huyện Ngọc Lặc,Ngọc Lặc,huyenngoclac,huyen ngoc lac|ngoc lac
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,390,Huyện Cẩm Thủy,Cẩm Thủy,huyencamthuy,cam thuy|huyen cam thuy
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,391,Huyện Thạch Thành,Thạch Thành,huyenthachthanh,huyen thach thanh|thach thanh
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,392,Huyện Hà Trung,Hà Trung,huyenhatrung,ha trung|huyen ha trung
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,393,Huyện Vĩnh Lộc,Vĩnh Lộc,huyenvinhloc,huyen vinh loc|vinh loc
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,394,Huyện Yên Định,Yên Định,huyenyendinh,huyen yen dinh|yen dinh
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,395,Huyện Thọ Xuân,Thọ Xuân,huyenthoxuan,huyen tho xuan|tho xuan
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,396,Huyện Thường Xuân,Thường Xuân,huyenthuongxuan,huyen thuong xuan|thuong xuan
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,397,Huyện Triệu Sơn,Triệu Sơn,huyentrieuson,huyen trieu son|trieu son
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,398,Huyện Thiệu Hóa,Thiệu Hóa,huyenthieuhoa,huyen thieu hoa|thieu hoa
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,399,Huyện Hoằng Hóa,Hoằng Hóa,huyenhoanghoa,hoang hoa|huyen hoang hoa
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,400,Huyện Hậu Lộc,Hậu Lộc,huyenhauloc,hau loc|huyen hau loc
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,401,Huyện Nga Sơn,Nga Sơn,huyenngason,huyen nga son|nga son
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,402,Huyện Như Xuân,Như Xuân,huyennhuxuan,huyen nhu xuan|nhu xuan
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,403,Huyện Như Thanh,Như Thanh,huyennhuthanh,huyen nhu thanh|nhu thanh
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,404,Huyện Nông Cống,Nông Cống,huyennongcong,huyen nong cong|nong cong
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,406,Huyện Quảng Xương,Quảng Xương,huyenquangxuong,huyen quang xuong|quang xuong
+38,Tỉnh Thanh Hóa,38,tinhthanhhoa,407,Thị xã Nghi Sơn,Nghi Sơn,thixanghison,nghi son|thi xa nghi son
+40,Tỉnh Nghệ An,40,tinhnghean,412,Thành phố Vinh,Vinh,thanhphovinh,thanh pho vinh|vinh
+40,Tỉnh Nghệ An,40,tinhnghean,414,Thị xã Thái Hòa,Thái Hòa,thixathaihoa,thai hoa|thi xa thai hoa
+40,Tỉnh Nghệ An,40,tinhnghean,415,Huyện Quế Phong,Quế Phong,huyenquephong,huyen que phong|que phong
+40,Tỉnh Nghệ An,40,tinhnghean,416,Huyện Quỳ Châu,Quỳ Châu,huyenquychau,huyen quy chau|quy chau
+40,Tỉnh Nghệ An,40,tinhnghean,417,Huyện Kỳ Sơn,Kỳ Sơn,huyenkyson,huyen ky son|ky son
+40,Tỉnh Nghệ An,40,tinhnghean,418,Huyện Tương Dương,Tương Dương,huyentuongduong,huyen tuong duong|tuong duong
+40,Tỉnh Nghệ An,40,tinhnghean,419,Huyện Nghĩa Đàn,Nghĩa Đàn,huyennghiadan,huyen nghia dan|nghia dan
+40,Tỉnh Nghệ An,40,tinhnghean,420,Huyện Quỳ Hợp,Quỳ Hợp,huyenquyhop,huyen quy hop|quy hop
+40,Tỉnh Nghệ An,40,tinhnghean,421,Huyện Quỳnh Lưu,Quỳnh Lưu,huyenquynhluu,huyen quynh luu|quynh luu
+40,Tỉnh Nghệ An,40,tinhnghean,422,Huyện Con Cuông,Con Cuông,huyenconcuong,con cuong|huyen con cuong
+40,Tỉnh Nghệ An,40,tinhnghean,423,Huyện Tân Kỳ,Tân Kỳ,huyentanky,huyen tan ky|tan ky
+40,Tỉnh Nghệ An,40,tinhnghean,424,Huyện Anh Sơn,Anh Sơn,huyenanhson,anh son|huyen anh son
+40,Tỉnh Nghệ An,40,tinhnghean,425,Huyện Diễn Châu,Diễn Châu,huyendienchau,dien chau|huyen dien chau
+40,Tỉnh Nghệ An,40,tinhnghean,426,Huyện Yên Thành,Yên Thành,huyenyenthanh,huyen yen thanh|yen thanh
+40,Tỉnh Nghệ An,40,tinhnghean,427,Huyện Đô Lương,Đô Lương,huyendoluong,do luong|huyen do luong
+40,Tỉnh Nghệ An,40,tinhnghean,428,Huyện Thanh Chương,Thanh Chương,huyenthanhchuong,huyen thanh chuong|thanh chuong
+40,Tỉnh Nghệ An,40,tinhnghean,429,Huyện Nghi Lộc,Nghi Lộc,huyennghiloc,huyen nghi loc|nghi loc
+40,Tỉnh Nghệ An,40,tinhnghean,430,Huyện Nam Đàn,Nam Đàn,huyennamdan,huyen nam dan|nam dan
+40,Tỉnh Nghệ An,40,tinhnghean,431,Huyện Hưng Nguyên,Hưng Nguyên,huyenhungnguyen,hung nguyen|huyen hung nguyen
+40,Tỉnh Nghệ An,40,tinhnghean,432,Thị xã Hoàng Mai,Hoàng Mai,thixahoangmai,hoang mai|thi xa hoang mai
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,436,Thành phố Hà Tĩnh,Hà Tĩnh,thanhphohatinh,ha tinh|thanh pho ha tinh
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,437,Thị xã Hồng Lĩnh,Hồng Lĩnh,thixahonglinh,hong linh|thi xa hong linh
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,439,Huyện Hương Sơn,Hương Sơn,huyenhuongson,huong son|huyen huong son
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,440,Huyện Đức Thọ,Đức Thọ,huyenductho,duc tho|huyen duc tho
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,441,Huyện Vũ Quang,Vũ Quang,huyenvuquang,huyen vu quang|vu quang
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,442,Huyện Nghi Xuân,Nghi Xuân,huyennghixuan,huyen nghi xuan|nghi xuan
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,443,Huyện Can Lộc,Can Lộc,huyencanloc,can loc|huyen can loc
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,444,Huyện Hương Khê,Hương Khê,huyenhuongkhe,huong khe|huyen huong khe
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,445,Huyện Thạch Hà,Thạch Hà,huyenthachha,huyen thach ha|thach ha
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,446,Huyện Cẩm Xuyên,Cẩm Xuyên,huyencamxuyen,cam xuyen|huyen cam xuyen
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,447,Huyện Kỳ Anh,Kỳ Anh (Huyện),huyenkyanh,huyen ky anh|ky anh (huyen)
+42,Tỉnh Hà Tĩnh,42,tinhhatinh,449,Thị xã Kỳ Anh,Kỳ Anh (Thị xã),thixakyanh,ky anh (thi xa)|thi xa ky anh
+44,Tỉnh Quảng Trị,44,tinhquangbinh,450,Thành Phố Đồng Hới,Đồng Hới,thanhphodonghoi,dong hoi|thanh pho dong hoi
+44,Tỉnh Quảng Trị,44,tinhquangbinh,452,Huyện Minh Hóa,Minh Hóa,huyenminhhoa,huyen minh hoa|minh hoa
+44,Tỉnh Quảng Trị,44,tinhquangbinh,453,Huyện Tuyên Hóa,Tuyên Hóa,huyentuyenhoa,huyen tuyen hoa|tuyen hoa
+44,Tỉnh Quảng Trị,44,tinhquangbinh,454,Huyện Quảng Trạch,Quảng Trạch,huyenquangtrach,huyen quang trach|quang trach
+44,Tỉnh Quảng Trị,44,tinhquangbinh,455,Huyện Bố Trạch,Bố Trạch,huyenbotrach,bo trach|huyen bo trach
+44,Tỉnh Quảng Trị,44,tinhquangbinh,456,Huyện Quảng Ninh,Quảng Ninh,huyenquangninh,huyen quang ninh|quang ninh
+44,Tỉnh Quảng Trị,44,tinhquangbinh,457,Huyện Lệ Thủy,Lệ Thủy,huyenlethuy,huyen le thuy|le thuy
+44,Tỉnh Quảng Trị,44,tinhquangbinh,458,Thị xã Ba Đồn,Ba Đồn,thixabadon,ba don|thi xa ba don
+44,Tỉnh Quảng Trị,45,tinhquangtri,461,Thành phố Đông Hà,Đông Hà,thanhphodongha,dong ha|thanh pho dong ha
+44,Tỉnh Quảng Trị,45,tinhquangtri,462,Thị xã Quảng Trị,Quảng Trị,thixaquangtri,quang tri|thi xa quang tri
+44,Tỉnh Quảng Trị,45,tinhquangtri,464,Huyện Vĩnh Linh,Vĩnh Linh,huyenvinhlinh,huyen vinh linh|vinh linh
+44,Tỉnh Quảng Trị,45,tinhquangtri,465,Huyện Hướng Hóa,Hướng Hóa,huyenhuonghoa,huong hoa|huyen huong hoa
+44,Tỉnh Quảng Trị,45,tinhquangtri,466,Huyện Gio Linh,Gio Linh,huyengiolinh,gio linh|huyen gio linh
+44,Tỉnh Quảng Trị,45,tinhquangtri,467,Huyện Đa Krông,Đa Krông,huyendakrong,da krong|huyen da krong
+44,Tỉnh Quảng Trị,45,tinhquangtri,468,Huyện Cam Lộ,Cam Lộ,huyencamlo,cam lo|huyen cam lo
+44,Tỉnh Quảng Trị,45,tinhquangtri,469,Huyện Triệu Phong,Triệu Phong,huyentrieuphong,huyen trieu phong|trieu phong
+44,Tỉnh Quảng Trị,45,tinhquangtri,470,Huyện Hải Lăng,Hải Lăng,huyenhailang,hai lang|huyen hai lang
+44,Tỉnh Quảng Trị,45,tinhquangtri,471,Huyện Cồn Cỏ,Cồn Cỏ,huyenconco,con co|huyen con co
+46,Thành phố Huế,46,thanhphohue,474,Quận Thuận Hóa,Thuận Hóa,quanthuanhoa,quan thuan hoa|thuan hoa
+46,Thành phố Huế,46,thanhphohue,475,Quận Phú Xuân,Phú Xuân,quanphuxuan,phu xuan|quan phu xuan
+46,Thành phố Huế,46,thanhphohue,476,Thị xã Phong Điền,Phong Điền,thixaphongdien,phong dien|thi xa phong dien
+46,Thành phố Huế,46,thanhphohue,477,Huyện Quảng Điền,Quảng Điền,huyenquangdien,huyen quang dien|quang dien
+46,Thành phố Huế,46,thanhphohue,478,Huyện Phú Vang,Phú Vang,huyenphuvang,huyen phu vang|phu vang
+46,Thành phố Huế,46,thanhphohue,479,Thị xã Hương Thủy,Hương Thủy,thixahuongthuy,huong thuy|thi xa huong thuy
+46,Thành phố Huế,46,thanhphohue,480,Thị xã Hương Trà,Hương Trà,thixahuongtra,huong tra|thi xa huong tra
+46,Thành phố Huế,46,thanhphohue,481,Huyện A Lưới,A Lưới,huyenaluoi,a luoi|huyen a luoi
+46,Thành phố Huế,46,thanhphohue,482,Huyện Phú Lộc,Phú Lộc,huyenphuloc,huyen phu loc|phu loc
+48,Thành phố Đà Nẵng,48,thanhphodanang,490,Quận Liên Chiểu,Liên Chiểu,quanlienchieu,lien chieu|quan lien chieu
+48,Thành phố Đà Nẵng,48,thanhphodanang,491,Quận Thanh Khê,Thanh Khê,quanthanhkhe,quan thanh khe|thanh khe
+48,Thành phố Đà Nẵng,48,thanhphodanang,492,Quận Hải Châu,Hải Châu,quanhaichau,hai chau|quan hai chau
+48,Thành phố Đà Nẵng,48,thanhphodanang,493,Quận Sơn Trà,Sơn Trà,quansontra,quan son tra|son tra
+48,Thành phố Đà Nẵng,48,thanhphodanang,494,Quận Ngũ Hành Sơn,Ngũ Hành Sơn,quannguhanhson,ngu hanh son|quan ngu hanh son
+48,Thành phố Đà Nẵng,48,thanhphodanang,495,Quận Cẩm Lệ,Cẩm Lệ,quancamle,cam le|quan cam le
+48,Thành phố Đà Nẵng,48,thanhphodanang,497,Huyện Hòa Vang,Hòa Vang,huyenhoavang,hoa vang|huyen hoa vang
+48,Thành phố Đà Nẵng,48,thanhphodanang,498,Huyện Hoàng Sa,Hoàng Sa,huyenhoangsa,hoang sa|huyen hoang sa
+48,Thành phố Đà Nẵng,49,tinhquangnam,502,Thành phố Tam Kỳ,Tam Kỳ,thanhphotamky,tam ky|thanh pho tam ky
+48,Thành phố Đà Nẵng,49,tinhquangnam,503,Thành phố Hội An,Hội An,thanhphohoian,hoi an|thanh pho hoi an
+48,Thành phố Đà Nẵng,49,tinhquangnam,504,Huyện Tây Giang,Tây Giang,huyentaygiang,huyen tay giang|tay giang
+48,Thành phố Đà Nẵng,49,tinhquangnam,505,Huyện Đông Giang,Đông Giang,huyendonggiang,dong giang|huyen dong giang
+48,Thành phố Đà Nẵng,49,tinhquangnam,506,Huyện Đại Lộc,Đại Lộc,huyendailoc,dai loc|huyen dai loc
+48,Thành phố Đà Nẵng,49,tinhquangnam,507,Thị xã Điện Bàn,Điện Bàn,thixadienban,dien ban|thi xa dien ban
+48,Thành phố Đà Nẵng,49,tinhquangnam,508,Huyện Duy Xuyên,Duy Xuyên,huyenduyxuyen,duy xuyen|huyen duy xuyen
+48,Thành phố Đà Nẵng,49,tinhquangnam,509,Huyện Quế Sơn,Quế Sơn,huyenqueson,huyen que son|que son
+48,Thành phố Đà Nẵng,49,tinhquangnam,510,Huyện Nam Giang,Nam Giang,huyennamgiang,huyen nam giang|nam giang
+48,Thành phố Đà Nẵng,49,tinhquangnam,511,Huyện Phước Sơn,Phước Sơn,huyenphuocson,huyen phuoc son|phuoc son
+48,Thành phố Đà Nẵng,49,tinhquangnam,512,Huyện Hiệp Đức,Hiệp Đức,huyenhiepduc,hiep duc|huyen hiep duc
+48,Thành phố Đà Nẵng,49,tinhquangnam,513,Huyện Thăng Bình,Thăng Bình,huyenthangbinh,huyen thang binh|thang binh
+48,Thành phố Đà Nẵng,49,tinhquangnam,514,Huyện Tiên Phước,Tiên Phước,huyentienphuoc,huyen tien phuoc|tien phuoc
+48,Thành phố Đà Nẵng,49,tinhquangnam,515,Huyện Bắc Trà My,Bắc Trà My,huyenbactramy,bac tra my|huyen bac tra my
+48,Thành phố Đà Nẵng,49,tinhquangnam,516,Huyện Nam Trà My,Nam Trà My,huyennamtramy,huyen nam tra my|nam tra my
+48,Thành phố Đà Nẵng,49,tinhquangnam,517,Huyện Núi Thành,Núi Thành,huyennuithanh,huyen nui thanh|nui thanh
+48,Thành phố Đà Nẵng,49,tinhquangnam,518,Huyện Phú Ninh,Phú Ninh,huyenphuninh,huyen phu ninh|phu ninh
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,522,Thành phố Quảng Ngãi,Quảng Ngãi,thanhphoquangngai,quang ngai|thanh pho quang ngai
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,524,Huyện Bình Sơn,Bình Sơn,huyenbinhson,binh son|huyen binh son
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,525,Huyện Trà Bồng,Trà Bồng,huyentrabong,huyen tra bong|tra bong
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,527,Huyện Sơn Tịnh,Sơn Tịnh,huyensontinh,huyen son tinh|son tinh
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,528,Huyện Tư Nghĩa,Tư Nghĩa,huyentunghia,huyen tu nghia|tu nghia
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,529,Huyện Sơn Hà,Sơn Hà,huyensonha,huyen son ha|son ha
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,530,Huyện Sơn Tây,Sơn Tây,huyensontay,huyen son tay|son tay
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,531,Huyện Minh Long,Minh Long,huyenminhlong,huyen minh long|minh long
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,532,Huyện Nghĩa Hành,Nghĩa Hành,huyennghiahanh,huyen nghia hanh|nghia hanh
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,533,Huyện Mộ Đức,Mộ Đức,huyenmoduc,huyen mo duc|mo duc
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,534,Thị xã Đức Phổ,Đức Phổ,thixaducpho,duc pho|thi xa duc pho
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,535,Huyện Ba Tơ,Ba Tơ,huyenbato,ba to|huyen ba to
+51,Tỉnh Quảng Ngãi,51,tinhquangngai,536,Huyện Lý Sơn,Lý Sơn,huyenlyson,huyen ly son|ly son
+52,Tỉnh Gia Lai,52,tinhbinhdinh,540,Thành phố Quy Nhơn,Quy Nhơn,thanhphoquynhon,quy nhon|thanh pho quy nhon
+52,Tỉnh Gia Lai,52,tinhbinhdinh,542,Huyện An Lão,An Lão,huyenanlao,an lao|huyen an lao
+52,Tỉnh Gia Lai,52,tinhbinhdinh,543,Thị xã Hoài Nhơn,Hoài Nhơn,thixahoainhon,hoai nhon|thi xa hoai nhon
+52,Tỉnh Gia Lai,52,tinhbinhdinh,544,Huyện Hoài Ân,Hoài Ân,huyenhoaian,hoai an|huyen hoai an
+52,Tỉnh Gia Lai,52,tinhbinhdinh,545,Huyện Phù Mỹ,Phù Mỹ,huyenphumy,huyen phu my|phu my
+52,Tỉnh Gia Lai,52,tinhbinhdinh,546,Huyện Vĩnh Thạnh,Vĩnh Thạnh,huyenvinhthanh,huyen vinh thanh|vinh thanh
+52,Tỉnh Gia Lai,52,tinhbinhdinh,547,Huyện Tây Sơn,Tây Sơn,huyentayson,huyen tay son|tay son
+52,Tỉnh Gia Lai,52,tinhbinhdinh,548,Huyện Phù Cát,Phù Cát,huyenphucat,huyen phu cat|phu cat
+52,Tỉnh Gia Lai,52,tinhbinhdinh,549,Thị xã An Nhơn,An Nhơn,thixaannhon,an nhon|thi xa an nhon
+52,Tỉnh Gia Lai,52,tinhbinhdinh,550,Huyện Tuy Phước,Tuy Phước,huyentuyphuoc,huyen tuy phuoc|tuy phuoc
+52,Tỉnh Gia Lai,52,tinhbinhdinh,551,Huyện Vân Canh,Vân Canh,huyenvancanh,huyen van canh|van canh
+66,Tỉnh Đắk Lắk,54,tinhphuyen,555,Thành phố Tuy Hòa,Tuy Hòa,thanhphotuyhoa,thanh pho tuy hoa|tuy hoa
+66,Tỉnh Đắk Lắk,54,tinhphuyen,557,Thị xã Sông Cầu,Sông Cầu,thixasongcau,song cau|thi xa song cau
+66,Tỉnh Đắk Lắk,54,tinhphuyen,558,Huyện Đồng Xuân,Đồng Xuân,huyendongxuan,dong xuan|huyen dong xuan
+66,Tỉnh Đắk Lắk,54,tinhphuyen,559,Huyện Tuy An,Tuy An,huyentuyan,huyen tuy an|tuy an
+66,Tỉnh Đắk Lắk,54,tinhphuyen,560,Huyện Sơn Hòa,Sơn Hòa,huyensonhoa,huyen son hoa|son hoa
+66,Tỉnh Đắk Lắk,54,tinhphuyen,561,Huyện Sông Hinh,Sông Hinh,huyensonghinh,huyen song hinh|song hinh
+66,Tỉnh Đắk Lắk,54,tinhphuyen,562,Huyện Tây Hòa,Tây Hòa,huyentayhoa,huyen tay hoa|tay hoa
+66,Tỉnh Đắk Lắk,54,tinhphuyen,563,Huyện Phú Hòa,Phú Hòa,huyenphuhoa,huyen phu hoa|phu hoa
+66,Tỉnh Đắk Lắk,54,tinhphuyen,564,Thị xã Đông Hòa,Đông Hòa,thixadonghoa,dong hoa|thi xa dong hoa
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,568,Thành phố Nha Trang,Nha Trang,thanhphonhatrang,nha trang|thanh pho nha trang
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,569,Thành phố Cam Ranh,Cam Ranh,thanhphocamranh,cam ranh|thanh pho cam ranh
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,570,Huyện Cam Lâm,Cam Lâm,huyencamlam,cam lam|huyen cam lam
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,571,Huyện Vạn Ninh,Vạn Ninh,huyenvanninh,huyen van ninh|van ninh
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,572,Thị xã Ninh Hòa,Ninh Hòa,thixaninhhoa,ninh hoa|thi xa ninh hoa
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,573,Huyện Khánh Vĩnh,Khánh Vĩnh,huyenkhanhvinh,huyen khanh vinh|khanh vinh
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,574,Huyện Diên Khánh,Diên Khánh,huyendienkhanh,dien khanh|huyen dien khanh
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,575,Huyện Khánh Sơn,Khánh Sơn,huyenkhanhson,huyen khanh son|khanh son
+56,Tỉnh Khánh Hòa,56,tinhkhanhhoa,576,Huyện Trường Sa,Trường Sa,huyentruongsa,huyen truong sa|truong sa
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,582,Thành phố Phan Rang - Tháp Chàm,Phan Rang - Tháp Chàm,thanhphophanrangthapcham,phan rang - thap cham|thanh pho phan rang - thap cham
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,584,Huyện Bác Ái,Bác Ái,huyenbacai,bac ai|huyen bac ai
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,585,Huyện Ninh Sơn,Ninh Sơn,huyenninhson,huyen ninh son|ninh son
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,586,Huyện Ninh Hải,Ninh Hải,huyenninhhai,huyen ninh hai|ninh hai
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,587,Huyện Ninh Phước,Ninh Phước,huyenninhphuoc,huyen ninh phuoc|ninh phuoc
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,588,Huyện Thuận Bắc,Thuận Bắc,huyenthuanbac,huyen thuan bac|thuan bac
+56,Tỉnh Khánh Hòa,58,tinhninhthuan,589,Huyện Thuận Nam,Thuận Nam,huyenthuannam,huyen thuan nam|thuan nam
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,593,Thành phố Phan Thiết,Phan Thiết,thanhphophanthiet,phan thiet|thanh pho phan thiet
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,594,Thị xã La Gi,La Gi,thixalagi,la gi|thi xa la gi
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,595,Huyện Tuy Phong,Tuy Phong,huyentuyphong,huyen tuy phong|tuy phong
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,596,Huyện Bắc Bình,Bắc Bình,huyenbacbinh,bac binh|huyen bac binh
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,597,Huyện Hàm Thuận Bắc,Hàm Thuận Bắc,huyenhamthuanbac,ham thuan bac|huyen ham thuan bac
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,598,Huyện Hàm Thuận Nam,Hàm Thuận Nam,huyenhamthuannam,ham thuan nam|huyen ham thuan nam
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,599,Huyện Tánh Linh,Tánh Linh,huyentanhlinh,huyen tanh linh|tanh linh
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,600,Huyện Đức Linh,Đức Linh,huyenduclinh,duc linh|huyen duc linh
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,601,Huyện Hàm Tân,Hàm Tân,huyenhamtan,ham tan|huyen ham tan
+68,Tỉnh Lâm Đồng,60,tinhbinhthuan,602,Huyện Phú Quí,Phú Quí,huyenphuqui,huyen phu qui|phu qui
+51,Tỉnh Quảng Ngãi,62,tinhkontum,608,Thành phố Kon Tum,Kon Tum,thanhphokontum,kon tum|thanh pho kon tum
+51,Tỉnh Quảng Ngãi,62,tinhkontum,610,Huyện Đắk Glei,Đắk Glei,huyendakglei,dak glei|huyen dak glei
+51,Tỉnh Quảng Ngãi,62,tinhkontum,611,Huyện Ngọc Hồi,Ngọc Hồi,huyenngochoi,huyen ngoc hoi|ngoc hoi
+51,Tỉnh Quảng Ngãi,62,tinhkontum,612,Huyện Đắk Tô,Đắk Tô,huyendakto,dak to|huyen dak to
+51,Tỉnh Quảng Ngãi,62,tinhkontum,613,Huyện Kon Plông,Kon Plông,huyenkonplong,huyen kon plong|kon plong
+51,Tỉnh Quảng Ngãi,62,tinhkontum,614,Huyện Kon Rẫy,Kon Rẫy,huyenkonray,huyen kon ray|kon ray
+51,Tỉnh Quảng Ngãi,62,tinhkontum,615,Huyện Đăk Hà,Đăk Hà,huyendakha,dak ha|huyen dak ha
+51,Tỉnh Quảng Ngãi,62,tinhkontum,616,Huyện Sa Thầy,Sa Thầy,huyensathay,huyen sa thay|sa thay
+51,Tỉnh Quảng Ngãi,62,tinhkontum,617,Huyện Tu Mơ Rông,Tu Mơ Rông,huyentumorong,huyen tu mo rong|tu mo rong
+51,Tỉnh Quảng Ngãi,62,tinhkontum,618,Huyện Ia H'Drai,Ia H'Drai,huyeniahdrai,huyen ia h'drai|ia h'drai
+52,Tỉnh Gia Lai,64,tinhgialai,622,Thành phố Pleiku,Pleiku,thanhphopleiku,pleiku|thanh pho pleiku
+52,Tỉnh Gia Lai,64,tinhgialai,623,Thị xã An Khê,An Khê,thixaankhe,an khe|thi xa an khe
+52,Tỉnh Gia Lai,64,tinhgialai,624,Thị xã Ayun Pa,Ayun Pa,thixaayunpa,ayun pa|thi xa ayun pa
+52,Tỉnh Gia Lai,64,tinhgialai,625,Huyện KBang,KBang,huyenkbang,huyen kbang|kbang
+52,Tỉnh Gia Lai,64,tinhgialai,626,Huyện Đak Đoa,Đak Đoa,huyendakdoa,dak doa|huyen dak doa
+52,Tỉnh Gia Lai,64,tinhgialai,627,Huyện Chư Păh,Chư Păh,huyenchupah,chu pah|huyen chu pah
+52,Tỉnh Gia Lai,64,tinhgialai,628,Huyện Ia Grai,Ia Grai,huyeniagrai,huyen ia grai|ia grai
+52,Tỉnh Gia Lai,64,tinhgialai,629,Huyện Mang Yang,Mang Yang,huyenmangyang,huyen mang yang|mang yang
+52,Tỉnh Gia Lai,64,tinhgialai,630,Huyện Kông Chro,Kông Chro,huyenkongchro,huyen kong chro|kong chro
+52,Tỉnh Gia Lai,64,tinhgialai,631,Huyện Đức Cơ,Đức Cơ,huyenducco,duc co|huyen duc co
+52,Tỉnh Gia Lai,64,tinhgialai,632,Huyện Chư Prông,Chư Prông,huyenchuprong,chu prong|huyen chu prong
+52,Tỉnh Gia Lai,64,tinhgialai,633,Huyện Chư Sê,Chư Sê,huyenchuse,chu se|huyen chu se
+52,Tỉnh Gia Lai,64,tinhgialai,634,Huyện Đăk Pơ,Đăk Pơ,huyendakpo,dak po|huyen dak po
+52,Tỉnh Gia Lai,64,tinhgialai,635,Huyện Ia Pa,Ia Pa,huyeniapa,huyen ia pa|ia pa
+52,Tỉnh Gia Lai,64,tinhgialai,637,Huyện Krông Pa,Krông Pa,huyenkrongpa,huyen krong pa|krong pa
+52,Tỉnh Gia Lai,64,tinhgialai,638,Huyện Phú Thiện,Phú Thiện,huyenphuthien,huyen phu thien|phu thien
+52,Tỉnh Gia Lai,64,tinhgialai,639,Huyện Chư Pưh,Chư Pưh,huyenchupuh,chu puh|huyen chu puh
+66,Tỉnh Đắk Lắk,66,tinhdaklak,643,Thành phố Buôn Ma Thuột,Buôn Ma Thuột,thanhphobuonmathuot,buon ma thuot|thanh pho buon ma thuot
+66,Tỉnh Đắk Lắk,66,tinhdaklak,644,Thị Xã Buôn Hồ,Buôn Hồ,thixabuonho,buon ho|thi xa buon ho
+66,Tỉnh Đắk Lắk,66,tinhdaklak,645,Huyện Ea H'leo,Ea H'leo,huyeneahleo,ea h'leo|huyen ea h'leo
+66,Tỉnh Đắk Lắk,66,tinhdaklak,646,Huyện Ea Súp,Ea Súp,huyeneasup,ea sup|huyen ea sup
+66,Tỉnh Đắk Lắk,66,tinhdaklak,647,Huyện Buôn Đôn,Buôn Đôn,huyenbuondon,buon don|huyen buon don
+66,Tỉnh Đắk Lắk,66,tinhdaklak,648,Huyện Cư M'gar,Cư M'gar,huyencumgar,cu m'gar|huyen cu m'gar
+66,Tỉnh Đắk Lắk,66,tinhdaklak,649,Huyện Krông Búk,Krông Búk,huyenkrongbuk,huyen krong buk|krong buk
+66,Tỉnh Đắk Lắk,66,tinhdaklak,650,Huyện Krông Năng,Krông Năng,huyenkrongnang,huyen krong nang|krong nang
+66,Tỉnh Đắk Lắk,66,tinhdaklak,651,Huyện Ea Kar,Ea Kar,huyeneakar,ea kar|huyen ea kar
+66,Tỉnh Đắk Lắk,66,tinhdaklak,652,Huyện M'Đrắk,M'Đrắk,huyenmdrak,huyen m'drak|m'drak
+66,Tỉnh Đắk Lắk,66,tinhdaklak,653,Huyện Krông Bông,Krông Bông,huyenkrongbong,huyen krong bong|krong bong
+66,Tỉnh Đắk Lắk,66,tinhdaklak,654,Huyện Krông Pắc,Krông Pắc,huyenkrongpac,huyen krong pac|krong pac
+66,Tỉnh Đắk Lắk,66,tinhdaklak,655,Huyện Krông A Na,Krông A Na,huyenkrongana,huyen krong a na|krong a na
+66,Tỉnh Đắk Lắk,66,tinhdaklak,656,Huyện Lắk,Lắk,huyenlak,huyen lak|lak
+66,Tỉnh Đắk Lắk,66,tinhdaklak,657,Huyện Cư Kuin,Cư Kuin,huyencukuin,cu kuin|huyen cu kuin
+68,Tỉnh Lâm Đồng,67,tinhdaknong,660,Thành phố Gia Nghĩa,Gia Nghĩa,thanhphogianghia,gia nghia|thanh pho gia nghia
+68,Tỉnh Lâm Đồng,67,tinhdaknong,661,Huyện Đăk Glong,Đăk Glong,huyendakglong,dak glong|huyen dak glong
+68,Tỉnh Lâm Đồng,67,tinhdaknong,662,Huyện Cư Jút,Cư Jút,huyencujut,cu jut|huyen cu jut
+68,Tỉnh Lâm Đồng,67,tinhdaknong,663,Huyện Đắk Mil,Đắk Mil,huyendakmil,dak mil|huyen dak mil
+68,Tỉnh Lâm Đồng,67,tinhdaknong,664,Huyện Krông Nô,Krông Nô,huyenkrongno,huyen krong no|krong no
+68,Tỉnh Lâm Đồng,67,tinhdaknong,665,Huyện Đắk Song,Đắk Song,huyendaksong,dak song|huyen dak song
+68,Tỉnh Lâm Đồng,67,tinhdaknong,666,Huyện Đắk R'Lấp,Đắk R'Lấp,huyendakrlap,dak r'lap|huyen dak r'lap
+68,Tỉnh Lâm Đồng,67,tinhdaknong,667,Huyện Tuy Đức,Tuy Đức,huyentuyduc,huyen tuy duc|tuy duc
+68,Tỉnh Lâm Đồng,68,tinhlamdong,672,Thành phố Đà Lạt,Đà Lạt,thanhphodalat,da lat|thanh pho da lat
+68,Tỉnh Lâm Đồng,68,tinhlamdong,673,Thành phố Bảo Lộc,Bảo Lộc,thanhphobaoloc,bao loc|thanh pho bao loc
+68,Tỉnh Lâm Đồng,68,tinhlamdong,674,Huyện Đam Rông,Đam Rông,huyendamrong,dam rong|huyen dam rong
+68,Tỉnh Lâm Đồng,68,tinhlamdong,675,Huyện Lạc Dương,Lạc Dương,huyenlacduong,huyen lac duong|lac duong
+68,Tỉnh Lâm Đồng,68,tinhlamdong,676,Huyện Lâm Hà,Lâm Hà,huyenlamha,huyen lam ha|lam ha
+68,Tỉnh Lâm Đồng,68,tinhlamdong,677,Huyện Đơn Dương,Đơn Dương,huyendonduong,don duong|huyen don duong
+68,Tỉnh Lâm Đồng,68,tinhlamdong,678,Huyện Đức Trọng,Đức Trọng,huyenductrong,duc trong|huyen duc trong
+68,Tỉnh Lâm Đồng,68,tinhlamdong,679,Huyện Di Linh,Di Linh,huyendilinh,di linh|huyen di linh
+68,Tỉnh Lâm Đồng,68,tinhlamdong,680,Huyện Bảo Lâm,Bảo Lâm,huyenbaolam,bao lam|huyen bao lam
+68,Tỉnh Lâm Đồng,68,tinhlamdong,682,Huyện Đạ Huoai,Đạ Huoai,huyendahuoai,da huoai|huyen da huoai
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,688,Thị xã Phước Long,Phước Long,thixaphuoclong,phuoc long|thi xa phuoc long
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,689,Thành phố Đồng Xoài,Đồng Xoài,thanhphodongxoai,dong xoai|thanh pho dong xoai
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,690,Thị xã Bình Long,Bình Long,thixabinhlong,binh long|thi xa binh long
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,691,Huyện Bù Gia Mập,Bù Gia Mập,huyenbugiamap,bu gia map|huyen bu gia map
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,692,Huyện Lộc Ninh,Lộc Ninh,huyenlocninh,huyen loc ninh|loc ninh
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,693,Huyện Bù Đốp,Bù Đốp,huyenbudop,bu dop|huyen bu dop
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,694,Huyện Hớn Quản,Hớn Quản,huyenhonquan,hon quan|huyen hon quan
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,695,Huyện Đồng Phú,Đồng Phú,huyendongphu,dong phu|huyen dong phu
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,696,Huyện Bù Đăng,Bù Đăng,huyenbudang,bu dang|huyen bu dang
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,697,Thị xã Chơn Thành,Chơn Thành,thixachonthanh,chon thanh|thi xa chon thanh
+75,Tỉnh Đồng Nai,70,tinhbinhphuoc,698,Huyện Phú Riềng,Phú Riềng,huyenphurieng,huyen phu rieng|phu rieng
+80,Tỉnh Tây Ninh,72,tinhtayninh,703,Thành phố Tây Ninh,Tây Ninh,thanhphotayninh,tay ninh|thanh pho tay ninh
+80,Tỉnh Tây Ninh,72,tinhtayninh,705,Huyện Tân Biên,Tân Biên,huyentanbien,huyen tan bien|tan bien
+80,Tỉnh Tây Ninh,72,tinhtayninh,706,Huyện Tân Châu,Tân Châu,huyentanchau,huyen tan chau|tan chau
+80,Tỉnh Tây Ninh,72,tinhtayninh,707,Huyện Dương Minh Châu,Dương Minh Châu,huyenduongminhchau,duong minh chau|huyen duong minh chau
+80,Tỉnh Tây Ninh,72,tinhtayninh,708,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+80,Tỉnh Tây Ninh,72,tinhtayninh,709,Thị xã Hòa Thành,Hòa Thành,thixahoathanh,hoa thanh|thi xa hoa thanh
+80,Tỉnh Tây Ninh,72,tinhtayninh,710,Huyện Gò Dầu,Gò Dầu,huyengodau,go dau|huyen go dau
+80,Tỉnh Tây Ninh,72,tinhtayninh,711,Huyện Bến Cầu,Bến Cầu,huyenbencau,ben cau|huyen ben cau
+80,Tỉnh Tây Ninh,72,tinhtayninh,712,Thị xã Trảng Bàng,Trảng Bàng,thixatrangbang,thi xa trang bang|trang bang
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,718,Thành phố Thủ Dầu Một,Thủ Dầu Một,thanhphothudaumot,thanh pho thu dau mot|thu dau mot
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,719,Huyện Bàu Bàng,Bàu Bàng,huyenbaubang,bau bang|huyen bau bang
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,720,Huyện Dầu Tiếng,Dầu Tiếng,huyendautieng,dau tieng|huyen dau tieng
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,721,Thành phố Bến Cát,Bến Cát,thanhphobencat,ben cat|thanh pho ben cat
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,722,Huyện Phú Giáo,Phú Giáo,huyenphugiao,huyen phu giao|phu giao
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,723,Thành phố Tân Uyên,Tân Uyên,thanhphotanuyen,tan uyen|thanh pho tan uyen
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,724,Thành phố Dĩ An,Dĩ An,thanhphodian,di an|thanh pho di an
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,725,Thành phố Thuận An,Thuận An,thanhphothuanan,thanh pho thuan an|thuan an
+79,Thành phố Hồ Chí Minh,74,tinhbinhduong,726,Huyện Bắc Tân Uyên,Bắc Tân Uyên,huyenbactanuyen,bac tan uyen|huyen bac tan uyen
+75,Tỉnh Đồng Nai,75,tinhdongnai,731,Thành phố Biên Hòa,Biên Hòa,thanhphobienhoa,bien hoa|thanh pho bien hoa
+75,Tỉnh Đồng Nai,75,tinhdongnai,732,Thành phố Long Khánh,Long Khánh,thanhpholongkhanh,long khanh|thanh pho long khanh
+75,Tỉnh Đồng Nai,75,tinhdongnai,734,Huyện Tân Phú,Tân Phú,huyentanphu,huyen tan phu|tan phu
+75,Tỉnh Đồng Nai,75,tinhdongnai,735,Huyện Vĩnh Cửu,Vĩnh Cửu,huyenvinhcuu,huyen vinh cuu|vinh cuu
+75,Tỉnh Đồng Nai,75,tinhdongnai,736,Huyện Định Quán,Định Quán,huyendinhquan,dinh quan|huyen dinh quan
+75,Tỉnh Đồng Nai,75,tinhdongnai,737,Huyện Trảng Bom,Trảng Bom,huyentrangbom,huyen trang bom|trang bom
+75,Tỉnh Đồng Nai,75,tinhdongnai,738,Huyện Thống Nhất,Thống Nhất,huyenthongnhat,huyen thong nhat|thong nhat
+75,Tỉnh Đồng Nai,75,tinhdongnai,739,Huyện Cẩm Mỹ,Cẩm Mỹ,huyencammy,cam my|huyen cam my
+75,Tỉnh Đồng Nai,75,tinhdongnai,740,Huyện Long Thành,Long Thành,huyenlongthanh,huyen long thanh|long thanh
+75,Tỉnh Đồng Nai,75,tinhdongnai,741,Huyện Xuân Lộc,Xuân Lộc,huyenxuanloc,huyen xuan loc|xuan loc
+75,Tỉnh Đồng Nai,75,tinhdongnai,742,Huyện Nhơn Trạch,Nhơn Trạch,huyennhontrach,huyen nhon trach|nhon trach
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,747,Thành phố Vũng Tàu,Vũng Tàu,thanhphovungtau,thanh pho vung tau|vung tau
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,748,Thành phố Bà Rịa,Bà Rịa,thanhphobaria,ba ria|thanh pho ba ria
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,750,Huyện Châu Đức,Châu Đức,huyenchauduc,chau duc|huyen chau duc
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,751,Huyện Xuyên Mộc,Xuyên Mộc,huyenxuyenmoc,huyen xuyen moc|xuyen moc
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,753,Huyện Long Đất,Long Đất,huyenlongdat,huyen long dat|long dat
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,754,Thành phố Phú Mỹ,Phú Mỹ,thanhphophumy,phu my|thanh pho phu my
+79,Thành phố Hồ Chí Minh,77,tinhbariavungtau,755,Huyện Côn Đảo,Côn Đảo,huyencondao,con dao|huyen con dao
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,760,Quận 1,Quận 1,quan1,q 1|q1|quan 1
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,761,Quận 12,Quận 12,quan12,q 12|q12|quan 12
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,764,Quận Gò Vấp,Gò Vấp,quangovap,go vap|quan go vap
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,765,Quận Bình Thạnh,Bình Thạnh,quanbinhthanh,binh thanh|quan binh thanh
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,766,Quận Tân Bình,Tân Bình,quantanbinh,quan tan binh|tan binh
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,767,Quận Tân Phú,Tân Phú,quantanphu,quan tan phu|tan phu
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,768,Quận Phú Nhuận,Phú Nhuận,quanphunhuan,phu nhuan|quan phu nhuan
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,769,Thành phố Thủ Đức,Thủ Đức,thanhphothuduc,q2|q9|quan 2|quan 9|thanh pho thu duc|thu duc
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,770,Quận 3,Quận 3,quan3,q 3|q3|quan 3
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,771,Quận 10,Quận 10,quan10,q 10|q10|quan 10
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,772,Quận 11,Quận 11,quan11,q 11|q11|quan 11
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,773,Quận 4,Quận 4,quan4,q 4|q4|quan 4
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,774,Quận 5,Quận 5,quan5,q 5|q5|quan 5
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,775,Quận 6,Quận 6,quan6,q 6|q6|quan 6
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,776,Quận 8,Quận 8,quan8,q 8|q8|quan 8
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,777,Quận Bình Tân,Bình Tân,quanbinhtan,binh tan|quan binh tan
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,778,Quận 7,Quận 7,quan7,q 7|q7|quan 7
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,783,Huyện Củ Chi,Củ Chi,huyencuchi,cu chi|huyen cu chi
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,784,Huyện Hóc Môn,Hóc Môn,huyenhocmon,hoc mon|huyen hoc mon
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,785,Huyện Bình Chánh,Bình Chánh,huyenbinhchanh,binh chanh|huyen binh chanh
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,786,Huyện Nhà Bè,Nhà Bè,huyennhabe,huyen nha be|nha be
+79,Thành phố Hồ Chí Minh,79,thanhphohochiminh,787,Huyện Cần Giờ,Cần Giờ,huyencangio,can gio|huyen can gio
+80,Tỉnh Tây Ninh,80,tinhlongan,794,Thành phố Tân An,Tân An,thanhphotanan,tan an|thanh pho tan an
+80,Tỉnh Tây Ninh,80,tinhlongan,795,Thị xã Kiến Tường,Kiến Tường,thixakientuong,kien tuong|thi xa kien tuong
+80,Tỉnh Tây Ninh,80,tinhlongan,796,Huyện Tân Hưng,Tân Hưng,huyentanhung,huyen tan hung|tan hung
+80,Tỉnh Tây Ninh,80,tinhlongan,797,Huyện Vĩnh Hưng,Vĩnh Hưng,huyenvinhhung,huyen vinh hung|vinh hung
+80,Tỉnh Tây Ninh,80,tinhlongan,798,Huyện Mộc Hóa,Mộc Hóa,huyenmochoa,huyen moc hoa|moc hoa
+80,Tỉnh Tây Ninh,80,tinhlongan,799,Huyện Tân Thạnh,Tân Thạnh,huyentanthanh,huyen tan thanh|tan thanh
+80,Tỉnh Tây Ninh,80,tinhlongan,800,Huyện Thạnh Hóa,Thạnh Hóa,huyenthanhhoa,huyen thanh hoa|thanh hoa
+80,Tỉnh Tây Ninh,80,tinhlongan,801,Huyện Đức Huệ,Đức Huệ,huyenduchue,duc hue|huyen duc hue
+80,Tỉnh Tây Ninh,80,tinhlongan,802,Huyện Đức Hòa,Đức Hòa,huyenduchoa,duc hoa|huyen duc hoa
+80,Tỉnh Tây Ninh,80,tinhlongan,803,Huyện Bến Lức,Bến Lức,huyenbenluc,ben luc|huyen ben luc
+80,Tỉnh Tây Ninh,80,tinhlongan,804,Huyện Thủ Thừa,Thủ Thừa,huyenthuthua,huyen thu thua|thu thua
+80,Tỉnh Tây Ninh,80,tinhlongan,805,Huyện Tân Trụ,Tân Trụ,huyentantru,huyen tan tru|tan tru
+80,Tỉnh Tây Ninh,80,tinhlongan,806,Huyện Cần Đước,Cần Đước,huyencanduoc,can duoc|huyen can duoc
+80,Tỉnh Tây Ninh,80,tinhlongan,807,Huyện Cần Giuộc,Cần Giuộc,huyencangiuoc,can giuoc|huyen can giuoc
+80,Tỉnh Tây Ninh,80,tinhlongan,808,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,815,Thành phố Mỹ Tho,Mỹ Tho,thanhphomytho,my tho|thanh pho my tho
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,816,Thành phố Gò Công,Gò Công,thanhphogocong,go cong|thanh pho go cong
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,817,Thị xã Cai Lậy,Cai Lậy (Thị xã),thixacailay,cai lay (thi xa)|thi xa cai lay
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,818,Huyện Tân Phước,Tân Phước,huyentanphuoc,huyen tan phuoc|tan phuoc
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,819,Huyện Cái Bè,Cái Bè,huyencaibe,cai be|huyen cai be
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,820,Huyện Cai Lậy,Cai Lậy (Huyện),huyencailay,cai lay (huyen)|huyen cai lay
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,821,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,822,Huyện Chợ Gạo,Chợ Gạo,huyenchogao,cho gao|huyen cho gao
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,823,Huyện Gò Công Tây,Gò Công Tây,huyengocongtay,go cong tay|huyen go cong tay
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,824,Huyện Gò Công Đông,Gò Công Đông,huyengocongdong,go cong dong|huyen go cong dong
+82,Tỉnh Đồng Tháp,82,tinhtiengiang,825,Huyện Tân Phú Đông,Tân Phú Đông,huyentanphudong,huyen tan phu dong|tan phu dong
+86,Tỉnh Vĩnh Long,83,tinhbentre,829,Thành phố Bến Tre,Bến Tre,thanhphobentre,ben tre|thanh pho ben tre
+86,Tỉnh Vĩnh Long,83,tinhbentre,831,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+86,Tỉnh Vĩnh Long,83,tinhbentre,832,Huyện Chợ Lách,Chợ Lách,huyencholach,cho lach|huyen cho lach
+86,Tỉnh Vĩnh Long,83,tinhbentre,833,Huyện Mỏ Cày Nam,Mỏ Cày Nam,huyenmocaynam,huyen mo cay nam|mo cay nam
+86,Tỉnh Vĩnh Long,83,tinhbentre,834,Huyện Giồng Trôm,Giồng Trôm,huyengiongtrom,giong trom|huyen giong trom
+86,Tỉnh Vĩnh Long,83,tinhbentre,835,Huyện Bình Đại,Bình Đại,huyenbinhdai,binh dai|huyen binh dai
+86,Tỉnh Vĩnh Long,83,tinhbentre,836,Huyện Ba Tri,Ba Tri,huyenbatri,ba tri|huyen ba tri
+86,Tỉnh Vĩnh Long,83,tinhbentre,837,Huyện Thạnh Phú,Thạnh Phú,huyenthanhphu,huyen thanh phu|thanh phu
+86,Tỉnh Vĩnh Long,83,tinhbentre,838,Huyện Mỏ Cày Bắc,Mỏ Cày Bắc,huyenmocaybac,huyen mo cay bac|mo cay bac
+86,Tỉnh Vĩnh Long,84,tinhtravinh,842,Thành phố Trà Vinh,Trà Vinh,thanhphotravinh,thanh pho tra vinh|tra vinh
+86,Tỉnh Vĩnh Long,84,tinhtravinh,844,Huyện Càng Long,Càng Long,huyencanglong,cang long|huyen cang long
+86,Tỉnh Vĩnh Long,84,tinhtravinh,845,Huyện Cầu Kè,Cầu Kè,huyencauke,cau ke|huyen cau ke
+86,Tỉnh Vĩnh Long,84,tinhtravinh,846,Huyện Tiểu Cần,Tiểu Cần,huyentieucan,huyen tieu can|tieu can
+86,Tỉnh Vĩnh Long,84,tinhtravinh,847,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+86,Tỉnh Vĩnh Long,84,tinhtravinh,848,Huyện Cầu Ngang,Cầu Ngang,huyencaungang,cau ngang|huyen cau ngang
+86,Tỉnh Vĩnh Long,84,tinhtravinh,849,Huyện Trà Cú,Trà Cú,huyentracu,huyen tra cu|tra cu
+86,Tỉnh Vĩnh Long,84,tinhtravinh,850,Huyện Duyên Hải,Duyên Hải (Huyện),huyenduyenhai,duyen hai (huyen)|huyen duyen hai
+86,Tỉnh Vĩnh Long,84,tinhtravinh,851,Thị xã Duyên Hải,Duyên Hải (Thị xã),thixaduyenhai,duyen hai (thi xa)|thi xa duyen hai
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,855,Thành phố Vĩnh Long,Vĩnh Long,thanhphovinhlong,thanh pho vinh long|vinh long
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,857,Huyện Long Hồ,Long Hồ,huyenlongho,huyen long ho|long ho
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,858,Huyện Mang Thít,Mang Thít,huyenmangthit,huyen mang thit|mang thit
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,859,Huyện Vũng Liêm,Vũng Liêm,huyenvungliem,huyen vung liem|vung liem
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,860,Huyện Tam Bình,Tam Bình,huyentambinh,huyen tam binh|tam binh
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,861,Thị xã Bình Minh,Bình Minh,thixabinhminh,binh minh|thi xa binh minh
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,862,Huyện Trà Ôn,Trà Ôn,huyentraon,huyen tra on|tra on
+86,Tỉnh Vĩnh Long,86,tinhvinhlong,863,Huyện Bình Tân,Bình Tân,huyenbinhtan,binh tan|huyen binh tan
+82,Tỉnh Đồng Tháp,87,tinhdongthap,866,Thành phố Cao Lãnh,Cao Lãnh (Thành phố),thanhphocaolanh,cao lanh (thanh pho)|thanh pho cao lanh
+82,Tỉnh Đồng Tháp,87,tinhdongthap,867,Thành phố Sa Đéc,Sa Đéc,thanhphosadec,sa dec|thanh pho sa dec
+82,Tỉnh Đồng Tháp,87,tinhdongthap,868,Thành phố Hồng Ngự,Hồng Ngự (Thành phố),thanhphohongngu,hong ngu (thanh pho)|thanh pho hong ngu
+82,Tỉnh Đồng Tháp,87,tinhdongthap,869,Huyện Tân Hồng,Tân Hồng,huyentanhong,huyen tan hong|tan hong
+82,Tỉnh Đồng Tháp,87,tinhdongthap,870,Huyện Hồng Ngự,Hồng Ngự (Huyện),huyenhongngu,hong ngu (huyen)|huyen hong ngu
+82,Tỉnh Đồng Tháp,87,tinhdongthap,871,Huyện Tam Nông,Tam Nông,huyentamnong,huyen tam nong|tam nong
+82,Tỉnh Đồng Tháp,87,tinhdongthap,872,Huyện Tháp Mười,Tháp Mười,huyenthapmuoi,huyen thap muoi|thap muoi
+82,Tỉnh Đồng Tháp,87,tinhdongthap,873,Huyện Cao Lãnh,Cao Lãnh (Huyện),huyencaolanh,cao lanh (huyen)|huyen cao lanh
+82,Tỉnh Đồng Tháp,87,tinhdongthap,874,Huyện Thanh Bình,Thanh Bình,huyenthanhbinh,huyen thanh binh|thanh binh
+82,Tỉnh Đồng Tháp,87,tinhdongthap,875,Huyện Lấp Vò,Lấp Vò,huyenlapvo,huyen lap vo|lap vo
+82,Tỉnh Đồng Tháp,87,tinhdongthap,876,Huyện Lai Vung,Lai Vung,huyenlaivung,huyen lai vung|lai vung
+82,Tỉnh Đồng Tháp,87,tinhdongthap,877,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+91,Tỉnh An Giang,89,tinhangiang,883,Thành phố Long Xuyên,Long Xuyên,thanhpholongxuyen,long xuyen|thanh pho long xuyen
+91,Tỉnh An Giang,89,tinhangiang,884,Thành phố Châu Đốc,Châu Đốc,thanhphochaudoc,chau doc|thanh pho chau doc
+91,Tỉnh An Giang,89,tinhangiang,886,Huyện An Phú,An Phú,huyenanphu,an phu|huyen an phu
+91,Tỉnh An Giang,89,tinhangiang,887,Thị xã Tân Châu,Tân Châu,thixatanchau,tan chau|thi xa tan chau
+91,Tỉnh An Giang,89,tinhangiang,888,Huyện Phú Tân,Phú Tân,huyenphutan,huyen phu tan|phu tan
+91,Tỉnh An Giang,89,tinhangiang,889,Huyện Châu Phú,Châu Phú,huyenchauphu,chau phu|huyen chau phu
+91,Tỉnh An Giang,89,tinhangiang,890,Thị xã Tịnh Biên,Tịnh Biên,thixatinhbien,thi xa tinh bien|tinh bien
+91,Tỉnh An Giang,89,tinhangiang,891,Huyện Tri Tôn,Tri Tôn,huyentriton,huyen tri ton|tri ton
+91,Tỉnh An Giang,89,tinhangiang,892,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+91,Tỉnh An Giang,89,tinhangiang,893,Huyện Chợ Mới,Chợ Mới,huyenchomoi,cho moi|huyen cho moi
+91,Tỉnh An Giang,89,tinhangiang,894,Huyện Thoại Sơn,Thoại Sơn,huyenthoaison,huyen thoai son|thoai son
+91,Tỉnh An Giang,91,tinhkiengiang,899,Thành phố Rạch Giá,Rạch Giá,thanhphorachgia,rach gia|thanh pho rach gia
+91,Tỉnh An Giang,91,tinhkiengiang,900,Thành phố Hà Tiên,Hà Tiên,thanhphohatien,ha tien|thanh pho ha tien
+91,Tỉnh An Giang,91,tinhkiengiang,902,Huyện Kiên Lương,Kiên Lương,huyenkienluong,huyen kien luong|kien luong
+91,Tỉnh An Giang,91,tinhkiengiang,903,Huyện Hòn Đất,Hòn Đất,huyenhondat,hon dat|huyen hon dat
+91,Tỉnh An Giang,91,tinhkiengiang,904,Huyện Tân Hiệp,Tân Hiệp,huyentanhiep,huyen tan hiep|tan hiep
+91,Tỉnh An Giang,91,tinhkiengiang,905,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+91,Tỉnh An Giang,91,tinhkiengiang,906,Huyện Giồng Riềng,Giồng Riềng,huyengiongrieng,giong rieng|huyen giong rieng
+91,Tỉnh An Giang,91,tinhkiengiang,907,Huyện Gò Quao,Gò Quao,huyengoquao,go quao|huyen go quao
+91,Tỉnh An Giang,91,tinhkiengiang,908,Huyện An Biên,An Biên,huyenanbien,an bien|huyen an bien
+91,Tỉnh An Giang,91,tinhkiengiang,909,Huyện An Minh,An Minh,huyenanminh,an minh|huyen an minh
+91,Tỉnh An Giang,91,tinhkiengiang,910,Huyện Vĩnh Thuận,Vĩnh Thuận,huyenvinhthuan,huyen vinh thuan|vinh thuan
+91,Tỉnh An Giang,91,tinhkiengiang,911,Thành phố Phú Quốc,Phú Quốc,thanhphophuquoc,phu quoc|thanh pho phu quoc
+91,Tỉnh An Giang,91,tinhkiengiang,912,Huyện Kiên Hải,Kiên Hải,huyenkienhai,huyen kien hai|kien hai
+91,Tỉnh An Giang,91,tinhkiengiang,913,Huyện U Minh Thượng,U Minh Thượng,huyenuminhthuong,huyen u minh thuong|u minh thuong
+91,Tỉnh An Giang,91,tinhkiengiang,914,Huyện Giang Thành,Giang Thành,huyengiangthanh,giang thanh|huyen giang thanh
+92,Thành phố Cần Thơ,92,thanhphocantho,916,Quận Ninh Kiều,Ninh Kiều,quanninhkieu,ninh kieu|quan ninh kieu
+92,Thành phố Cần Thơ,92,thanhphocantho,917,Quận Ô Môn,Ô Môn,quanomon,o mon|quan o mon
+92,Thành phố Cần Thơ,92,thanhphocantho,918,Quận Bình Thủy,Bình Thủy,quanbinhthuy,binh thuy|quan binh thuy
+92,Thành phố Cần Thơ,92,thanhphocantho,919,Quận Cái Răng,Cái Răng,quancairang,cai rang|quan cai rang
+92,Thành phố Cần Thơ,92,thanhphocantho,923,Quận Thốt Nốt,Thốt Nốt,quanthotnot,quan thot not|thot not
+92,Thành phố Cần Thơ,92,thanhphocantho,924,Huyện Vĩnh Thạnh,Vĩnh Thạnh,huyenvinhthanh,huyen vinh thanh|vinh thanh
+92,Thành phố Cần Thơ,92,thanhphocantho,925,Huyện Cờ Đỏ,Cờ Đỏ,huyencodo,co do|huyen co do
+92,Thành phố Cần Thơ,92,thanhphocantho,926,Huyện Phong Điền,Phong Điền,huyenphongdien,huyen phong dien|phong dien
+92,Thành phố Cần Thơ,92,thanhphocantho,927,Huyện Thới Lai,Thới Lai,huyenthoilai,huyen thoi lai|thoi lai
+92,Thành phố Cần Thơ,93,tinhhaugiang,930,Thành phố Vị Thanh,Vị Thanh,thanhphovithanh,thanh pho vi thanh|vi thanh
+92,Thành phố Cần Thơ,93,tinhhaugiang,931,Thành phố Ngã Bảy,Ngã Bảy,thanhphongabay,nga bay|thanh pho nga bay
+92,Thành phố Cần Thơ,93,tinhhaugiang,932,Huyện Châu Thành A,Châu Thành A,huyenchauthanha,chau thanh a|huyen chau thanh a
+92,Thành phố Cần Thơ,93,tinhhaugiang,933,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+92,Thành phố Cần Thơ,93,tinhhaugiang,934,Huyện Phụng Hiệp,Phụng Hiệp,huyenphunghiep,huyen phung hiep|phung hiep
+92,Thành phố Cần Thơ,93,tinhhaugiang,935,Huyện Vị Thủy,Vị Thủy,huyenvithuy,huyen vi thuy|vi thuy
+92,Thành phố Cần Thơ,93,tinhhaugiang,936,Huyện Long Mỹ,Long Mỹ (Huyện),huyenlongmy,huyen long my|long my (huyen)
+92,Thành phố Cần Thơ,93,tinhhaugiang,937,Thị xã Long Mỹ,Long Mỹ (Thị xã),thixalongmy,long my (thi xa)|thi xa long my
+92,Thành phố Cần Thơ,94,tinhsoctrang,941,Thành phố Sóc Trăng,Sóc Trăng,thanhphosoctrang,soc trang|thanh pho soc trang
+92,Thành phố Cần Thơ,94,tinhsoctrang,942,Huyện Châu Thành,Châu Thành,huyenchauthanh,chau thanh|huyen chau thanh
+92,Thành phố Cần Thơ,94,tinhsoctrang,943,Huyện Kế Sách,Kế Sách,huyenkesach,huyen ke sach|ke sach
+92,Thành phố Cần Thơ,94,tinhsoctrang,944,Huyện Mỹ Tú,Mỹ Tú,huyenmytu,huyen my tu|my tu
+92,Thành phố Cần Thơ,94,tinhsoctrang,945,Huyện Cù Lao Dung,Cù Lao Dung,huyenculaodung,cu lao dung|huyen cu lao dung
+92,Thành phố Cần Thơ,94,tinhsoctrang,946,Huyện Long Phú,Long Phú,huyenlongphu,huyen long phu|long phu
+92,Thành phố Cần Thơ,94,tinhsoctrang,947,Huyện Mỹ Xuyên,Mỹ Xuyên,huyenmyxuyen,huyen my xuyen|my xuyen
+92,Thành phố Cần Thơ,94,tinhsoctrang,948,Thị xã Ngã Năm,Ngã Năm,thixanganam,nga nam|thi xa nga nam
+92,Thành phố Cần Thơ,94,tinhsoctrang,949,Huyện Thạnh Trị,Thạnh Trị,huyenthanhtri,huyen thanh tri|thanh tri
+92,Thành phố Cần Thơ,94,tinhsoctrang,950,Thị xã Vĩnh Châu,Vĩnh Châu,thixavinhchau,thi xa vinh chau|vinh chau
+92,Thành phố Cần Thơ,94,tinhsoctrang,951,Huyện Trần Đề,Trần Đề,huyentrande,huyen tran de|tran de
+96,Tỉnh Cà Mau,95,tinhbaclieu,954,Thành phố Bạc Liêu,Bạc Liêu,thanhphobaclieu,bac lieu|thanh pho bac lieu
+96,Tỉnh Cà Mau,95,tinhbaclieu,956,Huyện Hồng Dân,Hồng Dân,huyenhongdan,hong dan|huyen hong dan
+96,Tỉnh Cà Mau,95,tinhbaclieu,957,Huyện Phước Long,Phước Long,huyenphuoclong,huyen phuoc long|phuoc long
+96,Tỉnh Cà Mau,95,tinhbaclieu,958,Huyện Vĩnh Lợi,Vĩnh Lợi,huyenvinhloi,huyen vinh loi|vinh loi
+96,Tỉnh Cà Mau,95,tinhbaclieu,959,Thị xã Giá Rai,Giá Rai,thixagiarai,gia rai|thi xa gia rai
+96,Tỉnh Cà Mau,95,tinhbaclieu,960,Huyện Đông Hải,Đông Hải,huyendonghai,dong hai|huyen dong hai
+96,Tỉnh Cà Mau,95,tinhbaclieu,961,Huyện Hòa Bình,Hòa Bình,huyenhoabinh,hoa binh|huyen hoa binh
+96,Tỉnh Cà Mau,96,tinhcamau,964,Thành phố Cà Mau,Cà Mau,thanhphocamau,ca mau|thanh pho ca mau
+96,Tỉnh Cà Mau,96,tinhcamau,966,Huyện U Minh,U Minh,huyenuminh,huyen u minh|u minh
+96,Tỉnh Cà Mau,96,tinhcamau,967,Huyện Thới Bình,Thới Bình,huyenthoibinh,huyen thoi binh|thoi binh
+96,Tỉnh Cà Mau,96,tinhcamau,968,Huyện Trần Văn Thời,Trần Văn Thời,huyentranvanthoi,huyen tran van thoi|tran van thoi
+96,Tỉnh Cà Mau,96,tinhcamau,969,Huyện Cái Nước,Cái Nước,huyencainuoc,cai nuoc|huyen cai nuoc
+96,Tỉnh Cà Mau,96,tinhcamau,970,Huyện Đầm Dơi,Đầm Dơi,huyendamdoi,dam doi|huyen dam doi
+96,Tỉnh Cà Mau,96,tinhcamau,971,Huyện Năm Căn,Năm Căn,huyennamcan,huyen nam can|nam can
+96,Tỉnh Cà Mau,96,tinhcamau,972,Huyện Phú Tân,Phú Tân,huyenphutan,huyen phu tan|phu tan
+96,Tỉnh Cà Mau,96,tinhcamau,973,Huyện Ngọc Hiển,Ngọc Hiển,huyenngochien,huyen ngoc hien|ngoc hien
