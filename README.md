@@ -49,8 +49,8 @@ Workspace `https://dbc-66b44822-7fe7.cloud.databricks.com` (AWS), Databricks CLI
 
 | Target | Schemas | Job | Ghi vào Postgres | Root path |
 | --- | --- | --- | --- | --- |
-| `dev` (default) | `prod.dev_bronze` / `prod.dev_silver` / `prod.dev_gold` | `[dev] Project 1 — …`, 01:00 Asia/Ho_Chi_Minh, **đang bật** | có (`dry_run=false`) | `/Workspace/Users/lemanhdat2112@gmail.com/.bundle/project1_youtube_restaurants/dev` (cố định) |
-| `prod` | `prod.bronze` / `prod.silver` / `prod.gold` | `Project 1 — …` (id 807264924625256), schedule paused | có | `~/.bundle/project1_youtube_restaurants/prod` |
+| `dev` (default) | `prod.dev_bronze` / `prod.dev_silver` / `prod.dev_gold` / `prod.dev_serving` | `[dev] Project 1 — …`, 01:00 Asia/Ho_Chi_Minh, **đang bật** | có (`dry_run=false`) | `/Workspace/Users/lemanhdat2112@gmail.com/.bundle/project1_youtube_restaurants/dev` (cố định) |
+| `prod` | `prod.bronze` / `prod.silver` / `prod.gold` / `prod.serving` | `Project 1 — …` (id 807264924625256), schedule paused | có | `~/.bundle/project1_youtube_restaurants/prod` |
 
 ```bash
 databricks bundle validate --strict              # dev
@@ -70,7 +70,7 @@ databricks bundle deploy -t prod
 | --- | --- | --- |
 | datle | CLI profile `dbc-66b44822-7fe7` trên máy | Owner của job / dashboard / app dev; job chạy dưới tên datle |
 | `claude-deploy` (SP, app id `10d899a3-…`) | Cloud environment `databricks_deploy` (Network secret OAuth client credentials, proxy gắn token; CLI cài bằng setup script) | CAN_MANAGE trên thư mục bundle, job, dashboard, app dev (khai báo ở `targets.dev.permissions`); USE CATALOG `prod`, USE SCHEMA + MANAGE trên `dev_*`; CAN_MANAGE warehouse; MANAGE scope `youtube`. Không đọc dữ liệu |
-| `claude-search` (SP) | Cloud environment `run_search` (chỉ `/api/2.2/jobs/`) | CAN_MANAGE_RUN job search + daily (dev); SELECT `gold` / `dev_gold`. Không deploy được |
+| `claude-search` (SP) | Cloud environment `run_search` (chỉ `/api/2.2/jobs/`) | CAN_MANAGE_RUN job search + daily (dev); SELECT `gold` / `dev_gold` (cần thêm `serving` / `dev_serving` từ 02/11). Không deploy được |
 
 Vì vậy `root_path`, `app_name`, `notification_email` của dev được cố định theo datle: ai deploy cũng cập nhật đúng một bộ resource. Sau này GitHub Actions dùng lại `claude-deploy`.
 
@@ -84,10 +84,10 @@ Local: `.env` at the repo root (see `.env.example`). Databricks App: `src/app/ap
 | --- | --- | --- |
 | `YOUTUBE_API_KEY` | `youtube_client.py` | On Databricks read from secret `youtube/api_key` first |
 | `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT`, `PGSSLMODE`, `APP_SCHEMA` | `database.py` | Lakebase Postgres (project `my-database`, branch `production`) |
-| `DATABRICKS_WAREHOUSE_ID`, `GOLD_SCHEMA` | `gold_client.py` | Defaults: Serverless Starter warehouse, `prod.gold` |
+| `DATABRICKS_WAREHOUSE_ID`, `SERVING_SCHEMA` | `gold_client.py` | Defaults: Serverless Starter warehouse, `prod.serving` |
 | `DATABRICKS_CONFIG_PROFILE` (or `DATABRICKS_HOST` + token) | `gold_client.py` | Local only; the deployed app uses its service principal |
 
-The ranking page needs **CAN USE** on the SQL warehouse and **SELECT** on `prod.gold` for whoever runs the app (your user locally, the app's service principal when deployed).
+The ranking page needs **CAN USE** on the SQL warehouse and **SELECT** on `prod.serving` for whoever runs the app (your user locally, the app's service principal when deployed).
 
 ### 2. Install & run
 
@@ -116,12 +116,15 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
                                           ▼
    SILVER prod.silver.stg_*        typed, insert-only: one row per read (snapshot_ts) + *_latest views; + stg_restaurant_mentions (LLM)
                                           ▼
-   GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2)
-                                   fact_video_snapshot, fact_channel_snapshot, fact_comment_snapshot,
-                                   fact_place_rating_snapshot (one row per read), fact_comment,
+   GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2),
+                                   dim_comment, dim_google_review
+                                   fact_video_snapshot, fact_channel_snapshot, fact_place_rating_snapshot (one row per read),
                                    fact_search_hit, fact_video_restaurant_mention
-                                   serving per day: agg_video_daily, agg_channel_daily, agg_restaurant_rating_daily
-                                   agg_restaurant_ranking  ─► app page "🏆 Xếp hạng quán ăn"
+                                          ▼
+   SERVING prod.serving            (since 2026-11-02; created by the gold/agg_* notebooks)
+                                   per day: agg_video_daily, agg_channel_daily, agg_restaurant_rating_daily, agg_restaurant_daily_views
+                                   agg_restaurant_ranking  ─► app page "🏆 Xếp hạng quán ăn", dashboard, chat (ask_restaurants)
+                                   agg_restaurant_comments, agg_restaurant_videos, agg_new_restaurants_daily  ─► dashboard
 ```
 
 | Layer | Table | Grain | Load |
