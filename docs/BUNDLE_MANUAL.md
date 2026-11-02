@@ -4,8 +4,8 @@ This repo is a **Databricks Asset Bundle** (DAB). One file, `databricks.yml`, pl
 
 | Resource | Key in the bundle | What it is |
 | --- | --- | --- |
-| Job | `project1_daily` | Once a day at 01:00: auto_search, then the full medallion pipeline (auto_search → refresh → Bronze → Silver → Gold → checks → ranking) |
-| Job | `project1_stats_refresh` | Re-reads view / like / comment counts at 07:00, 13:00, 21:00 and rebuilds the snapshot facts + view aggregates (grain stays video × day) |
+| Job | `project1_daily` | Refresh → serving every 3 h (04/07/10/13/16/19/22h, plus 01h triggered by `project1_auto_search`): refresh → Bronze → Silver → Gold → checks → ranking |
+| Job | `project1_auto_search` | Once a day at 01:00: auto_search, then runs `project1_daily` (2026-11-03; replaces `project1_stats_refresh`) |
 | Job | `project1_search` | Manual keyword search (YouTube / Google Places), no schedule: runs only when triggered (app, Jobs UI, `scripts/run_search_job.py`) |
 | App | `youtube_search` | The Streamlit app in `src/app` |
 | Schemas | `bronze`, `silver`, `gold` | The three medallion schemas in catalog `prod` |

@@ -55,8 +55,8 @@ variables:
     description: "Followed food channels whose new uploads auto_search lists per day (playlistItems.list, 1 unit each)"
     default: "100"
   comments_max_videos:
-    description: "Food review videos whose comments fetch_comments downloads per day (commentThreads.list, 1 unit each)"
-    default: "200"
+    description: "Food review videos whose comments fetch_comments downloads per refresh run (commentThreads.list, 1 unit each; 8 runs / day since 2026-11-03)"
+    default: "100"
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule
     default: PAUSED
@@ -104,8 +104,8 @@ targets:
               level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
-        project1_stats_refresh:
-          # claude-search can run the intraday stats refresh from the Claude chat (dev only)
+        project1_auto_search:
+          # claude-search can run the auto search (+ the whole refresh) from the Claude chat (dev only)
           permissions:
             - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
               level: IS_OWNER

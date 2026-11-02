@@ -14,18 +14,23 @@ import time
 
 from run_search_job import _api, _token
 
-JOB_NAME = "Project 1 — auto search + medallion (daily 01h)"
+# 2026-11-03: the pipeline is the refresh job (every 3 h); auto search is its own daily job that triggers it
+JOB_NAME = "Project 1 — refresh → serving (every 3h)"
+AUTO_SEARCH_JOB_NAME = "Project 1 — auto search (daily 01h)"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--auto-search", action="store_true",
+                        help="run the auto search job (which then runs the refresh job) instead of the refresh job only")
     parser.add_argument("--target", choices=["dev", "prod"], default="dev")
     parser.add_argument("--timeout", type=int, default=7200, help="seconds to wait for the run")
     args = parser.parse_args(argv)
 
     token = _token()
-    name = JOB_NAME if args.target == "prod" else f"[dev] {JOB_NAME}"
+    base = AUTO_SEARCH_JOB_NAME if args.auto_search else JOB_NAME
+    name = base if args.target == "prod" else f"[dev] {base}"
     jobs = _api(token, "GET", "jobs/list", query={"name": name}).get("jobs", [])
     if not jobs:
         raise SystemExit(f'job "{name}" not found (deployed? does claude-search have CAN_MANAGE_RUN?)')

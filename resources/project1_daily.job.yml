@@ -1,21 +1,27 @@
-# Daily job, once a day at 01:00 VN (design 1.5 "Daily job order"): auto_search, then the full medallion
-# pipeline down to the serving tables. The other two jobs: project1_stats_refresh (07/13/21h, counts only)
-# and project1_search (manual search, no schedule). Each task depends on the previous step,
-# so a failure (empty-source guard, Gold checks) stops everything after it.
+# Refresh job (2026-11-03, datle: 3 jobs): refresh -> Bronze -> every Silver task -> Gold -> serving, every 3 h
+# (04/07/10/13/16/19/22h VN, plus 01h when project1_auto_search triggers it). The other two jobs:
+# project1_auto_search (daily 01h, then triggers this job) and project1_search (manual, no schedule).
+# Each task depends on the previous step, so a failure (empty-source guard, Gold checks) stops everything after it.
+# Free quotas per day (8 runs): YouTube ~280 units (stats) + <= comments_max_videos units (comments) per run
+# ~= 3,800 + auto_search ~2,100 of 10,000; Gemini transcripts, Places geocode / Place Details have their own
+# daily + monthly caps inside the notebooks (counted over all runs of the day); LLM tables only process new rows.
+# The resource key stays project1_daily so the job id and run history are kept.
 resources:
   jobs:
     project1_daily:
-      name: ${var.job_name_prefix}Project 1 — auto search + medallion (daily 01h)
+      name: ${var.job_name_prefix}Project 1 — refresh → serving (every 3h)
       description: >-
-        auto_search → refresh → fetch_comments → Bronze → Silver (insert-only, one row per read: snapshot_ts; every Silver task, incl. transcripts / mentions / geocode / place details / sentiment) → silver_done → Gold dims → facts (read grain) → agg_daily_snapshots (serving, per day) → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
+        refresh → fetch_comments → Bronze → Silver (insert-only, one row per read: snapshot_ts; every Silver task, incl. transcripts / mentions / geocode / place details / sentiment) → silver_done → Gold dims → facts (read grain) → agg_daily_snapshots (serving, per day) → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
         stg_places + stg_restaurant_place_details (every Google read) → gold_place_rating (fact per read + agg_restaurant_rating_daily). bronze_retention keeps 7 days of Bronze.
         osm_ingest (weekly OpenStreetMap snapshot, skipped on the other days) → stg_osm_restaurants feeds gold_restaurants.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
-        quartz_cron_expression: "0 0 1 * * ?"
+        quartz_cron_expression: "0 0 4,7,10,13,16,19,22 * * ?"   # 01h: triggered by project1_auto_search
         timezone_id: Asia/Ho_Chi_Minh
         pause_status: ${var.schedule_pause_status}
       max_concurrent_runs: 1
+      queue:
+        enabled: true   # a run that starts while another is running waits instead of being skipped
       timeout_seconds: 7200
       email_notifications:
         on_failure:
@@ -35,29 +41,10 @@ resources:
           default: ${var.catalog}.${var.schema_prefix}serving
         - name: dry_run
           default: ${var.dry_run}
-        - name: auto_search_count
-          default: ${var.auto_search_count}
-        - name: auto_search_max_results
-          default: ${var.auto_search_max_results}
-        - name: auto_channel_limit
-          default: ${var.auto_channel_limit}
-        - name: auto_places_count
-          default: ${var.auto_places_count}
         - name: comments_max_videos
           default: ${var.comments_max_videos}
       tasks:
-        # Source A first: new uploads of followed food channels (1 unit per channel), then the
-        # system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
-        # never fails, so refresh always runs. New videos flow through the rest of this run.
-        - task_key: auto_search
-          notebook_task:
-            notebook_path: ../src/notebooks/refresh/auto_search.ipynb
-            base_parameters:
-              databricks_run_id: "{{job.run_id}}"
-          timeout_seconds: 1800
-
         - task_key: refresh_daily
-          depends_on: [{task_key: auto_search}]
           notebook_task:
             notebook_path: ../src/notebooks/refresh/run_refresh.ipynb
           timeout_seconds: 1800

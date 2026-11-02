@@ -1,0 +1,59 @@
+# Auto search job (2026-11-03, datle): once a day at 01:00 VN. New uploads of followed food channels, ~20 YouTube
+# keywords and the Google Maps grid (auto_search), then it triggers the refresh job (project1_daily) so the new
+# videos / places go through Bronze -> Silver -> Gold -> serving right away.
+# YouTube quota: search.list is 100 units per keyword (~2,100 units per run), so it stays once a day.
+resources:
+  jobs:
+    project1_auto_search:
+      name: ${var.job_name_prefix}Project 1 — auto search (daily 01h)
+      description: >-
+        auto_search (YouTube channels + keywords, Google Maps Text Search Pro) → run the refresh job (refresh → Bronze → Silver → Gold → serving).
+      schedule:
+        quartz_cron_expression: "0 0 1 * * ?"
+        timezone_id: Asia/Ho_Chi_Minh
+        pause_status: ${var.schedule_pause_status}
+      max_concurrent_runs: 1
+      timeout_seconds: 9000
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tags:
+        project: project1
+        layer: refresh
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        - name: serving
+          default: ${var.catalog}.${var.schema_prefix}serving
+        - name: dry_run
+          default: ${var.dry_run}
+        - name: auto_search_count
+          default: ${var.auto_search_count}
+        - name: auto_search_max_results
+          default: ${var.auto_search_max_results}
+        - name: auto_channel_limit
+          default: ${var.auto_channel_limit}
+        - name: auto_places_count
+          default: ${var.auto_places_count}
+      tasks:
+        # Source A first: new uploads of followed food channels (1 unit per channel), then the
+        # system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
+        # never fails, so the refresh job always runs.
+        - task_key: auto_search
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh/auto_search.ipynb
+            base_parameters:
+              databricks_run_id: "{{job.run_id}}"
+          timeout_seconds: 1800
+
+        # The whole pipeline down to serving (same job as the 3-hourly runs; queued if one is running)
+        - task_key: refresh_pipeline
+          depends_on: [{task_key: auto_search}]
+          run_job_task:
+            job_id: ${resources.jobs.project1_daily.id}
+            job_parameters:
+              dry_run: "{{job.parameters.dry_run}}"
