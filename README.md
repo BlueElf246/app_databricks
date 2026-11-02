@@ -116,7 +116,7 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
                                           ▼
    SILVER prod.silver.stg_*        typed, insert-only: one row per read (snapshot_ts) + *_latest views; + stg_restaurant_mentions (LLM)
                                           ▼
-   GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2),
+   GOLD   prod.gold                dim_date, dim_video, dim_channel, dim_commenter, dim_keyword, dim_restaurant (SCD 2), dim_dish,
                                    dim_comment, dim_google_review
                                    fact_video_snapshot, fact_channel_snapshot, fact_place_rating_snapshot (one row per read),
                                    fact_search_hit, fact_video_restaurant_mention
@@ -142,7 +142,8 @@ OpenStreetMap (Overpass, weekly) ─► bronze.osm_pois_raw ─► silver.stg_os
 | Gold | `dim_date` | `date_key` (yyyymmdd) | `CREATE OR REPLACE`, 2020–2030 + VN holiday seed |
 | Gold | `dim_video`, `dim_channel`, `dim_commenter`, `dim_keyword` | natural key | SCD 1 MERGE guarded by `record_checksum`; key = `xxhash64(natural key)`, Unknown = −1 |
 | Silver | `stg_restaurant_place_details` | `place_id` × `fetched_at` (insert-only, view `_latest`) | Google Place Details (rating, reviews, price range, primary type, website, phone, opening hours, photo) of geocoded places (re-read every 30 days), then the top 20 by `legit_score` (re-read every 7 days, rating history), then of Google-only places that auto_search found with Text Search Pro (≤ 24 / day, most-found first, re-read every 90 days); max 900 calls per month (free Enterprise tier) |
-| Gold | `dim_restaurant` | one row per version | SCD 2 on address / location; name, `cuisine`, `price_band`, `google_rating`, `google_rating_count` are type 1; dedup = Google `place_id`, else normalized name + district |
+| Gold | `dim_restaurant` | one row per version (`restaurant_id` + `valid_from`, no surrogate key) | v2 (2026-11-02): SCD 2 on address codes / location (GSO `ward_code` new ward, `district_code` old district, `city_code`); `restaurant_type`, `business_status` / `is_active`, `open_time` / `close_time`, cuisine, price are type 1; `restaurant_id = md5('place:' \|\| place_id)`, `'unknown'` = Unknown row |
+| Gold | `dim_dish` | `restaurant_id` × dish | SCD 1, full rebuild: dishes named in the reviews (name, category, median price said, signature flag, video count) |
 | Gold | `fact_video_snapshot`, `fact_channel_snapshot`, `fact_comment_snapshot` | id × `snapshot_ts` (every read) | `replaceWhere` from the last loaded day; counts semi-additive, `*_gained` (vs the previous read) additive |
 | Gold | `fact_place_rating_snapshot` | place × `snapshot_ts` × source (place_details / text_search) | `CREATE OR REPLACE` from `stg_places` + `stg_restaurant_place_details`; `rating_change`, `rating_count_gained` vs the previous read |
 | Serving | `agg_video_daily`, `agg_channel_daily` | id × day | Last read of the day, gains vs the previous day, `reads_in_day`; dashboards / ranking read these. Other grains (hour, week) can be added from the read-grain facts as dashboards need them |

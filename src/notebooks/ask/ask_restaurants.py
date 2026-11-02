@@ -76,42 +76,9 @@ cols = set(spark.table(RANKING).columns)
 def col(name, cast="BIGINT"):
     return f"r.{name}" if name in cols else f"CAST(NULL AS {cast})"
 
-# Old (pre-2025) district from the new ward: since the 2025 reform Google writes only the new
-# ward ("..., Tân Hưng, Hồ Chí Minh") and no district, so ~38% of rows have no district.
-# src/reference/vn_new_ward_to_old_district.csv (built from the vietnamadminunits package)
-# maps each new ward to the old district most of it came from, e.g. Tân Hưng -> Quận 7.
-# 17 of the 168 HCMC wards were merged from 2 old districts: districts_old lists all of them.
-import os
-import pandas as pd
-
-ref_path = next(p for p in ["../../reference/vn_new_ward_to_old_district.csv",
-                            "src/reference/vn_new_ward_to_old_district.csv"] if os.path.exists(p))
-ward_ref = pd.read_csv(ref_path, dtype=str).fillna("")
-province_keys = {k: re.sub(r"^(thanhpho|tinh)", "", k) for k in ward_ref.province_key.unique()}
-lookup = {(r.province_key, r.ward_short_key): r for r in ward_ref.itertuples()}
-
-
-def _key(text: str) -> str:
-    text = re.sub(r"^\s*(phường|phuong|xã|xa|p\.|đặc khu|dac khu)\s*", "", text.strip(), flags=re.I)
-    return re.sub(r"[^a-z0-9]", "", _strip_accents(text))
-
-
-def _old_district(address, city):
-    blob = _key(f"{address or ''} {city or ''}")
-    provinces = [k for k, short in province_keys.items() if short in blob] or list(province_keys)
-    for part in reversed((address or "").split(",")[:-1]):   # last part = city
-        for pk in provinces:
-            hit = lookup.get((pk, _key(part)))
-            if hit is not None:
-                return hit.district_old, hit.districts_old, hit.ward
-    return None, None, None
-
-
-addr = spark.sql(f"SELECT restaurant_id, address, city FROM {RANKING}").toPandas()
-old = [(r.restaurant_id, *_old_district(r.address, r.city)) for r in addr.itertuples()]
-spark.createDataFrame(old, "restaurant_id STRING, district_old STRING, districts_old STRING, ward_new STRING") \
-     .createOrReplaceTempView("old_district")
-
+# District / ward (dim_restaurant v2, 2026-11-02): agg_restaurant_ranking carries the old district with its GSO
+# code (Google > video > the new ward's only old district), every old district of the new ward (districts_old,
+# e.g. "Quận 7|Quận 8") and the new ward (ward_new). Built in gold/restaurants from src/reference/*.csv.
 # Same district normalization as the dashboard's "restaurants" dataset (keep in sync).
 sql = f"""
 WITH r AS (
@@ -125,18 +92,20 @@ WITH r AS (
   FROM {RANKING} a
 ),
 r2 AS (
-  SELECT r.*, o.district_old, o.districts_old, o.ward_new
-  FROM r LEFT JOIN old_district o ON o.restaurant_id = r.restaurant_id
+  SELECT r.*, r.district AS district_old, {col('districts_old', 'STRING')} AS districts_old_, {col('ward_new', 'STRING')} AS ward_new_,
+         {col('is_active', 'BOOLEAN')} AS is_active_, {col('signature_dishes', 'STRING')} AS signature_dishes_,
+         {col('menu_dishes', 'STRING')} AS menu_dishes_, {col('open_time', 'STRING')} AS open_time_,
+         {col('close_time', 'STRING')} AS close_time_
+  FROM r
 ),
 videos AS (   -- review videos per restaurant with their latest view count
-  SELECT r.restaurant_id, v.title, v.video_url, c.channel_title, s.view_count
+  SELECT m.restaurant_id, v.title, v.video_url, c.channel_title, s.view_count
   FROM {GOLD}.fact_video_restaurant_mention m
-  JOIN {GOLD}.dim_restaurant r ON r.restaurant_key = m.restaurant_key
   JOIN {GOLD}.dim_video v      ON v.video_key = m.video_key
   LEFT JOIN {GOLD}.dim_channel c ON c.channel_id = v.channel_id
   LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count
              FROM {VIDEO_DAILY} GROUP BY video_key) s ON s.video_key = m.video_key
-  WHERE m.restaurant_key <> -1
+  WHERE m.restaurant_id <> 'unknown'
 ),
 top_video AS (
   SELECT restaurant_id,
@@ -147,7 +116,8 @@ top_video AS (
   FROM videos GROUP BY restaurant_id
 ),
 picked AS (
-  SELECT r.restaurant_id, r.restaurant_name, r.address, r.district_norm AS district, r.district_old, r.ward_new, r.city,
+  SELECT r.restaurant_id, r.restaurant_name, r.address, r.district_norm AS district, r.district_old, r.ward_new_ AS ward_new, r.city,
+         r.signature_dishes_ AS signature_dishes, r.open_time_ AS open_time, r.close_time_ AS close_time,
          r.cuisine, r.cuisine_detail, r.price_band,
          CASE WHEN r.price_min_vnd IS NOT NULL
               THEN concat(CAST(round(r.price_min_vnd / 1000) AS INT), 'k',
@@ -161,18 +131,19 @@ picked AS (
          t.top_video_url, t.top_video_title, t.top_video_channel, t.top_video_views,
          r.as_of_date_key
   FROM r2 r LEFT JOIN top_video t ON t.restaurant_id = r.restaurant_id
-  WHERE (:city = '' OR r.city ILIKE concat('%', :city, '%'))
+  WHERE COALESCE(r.is_active_, true)   -- permanently closed on Google (dim_restaurant v2)
+    AND (:city = '' OR r.city ILIKE concat('%', :city, '%'))
     AND (:district_no = 0
          OR r.district_norm = concat('Quận ', :district_no)
-         OR array_contains(split(r.districts_old, '[|]'), concat('Quận ', :district_no))
+         OR array_contains(split(r.districts_old_, '[|]'), concat('Quận ', :district_no))
          -- district missing on ~38% of rows: fall back to the address text
          OR (r.district_norm = 'Chưa rõ'
              AND r.address RLIKE concat('(?iu)(quận|quan|q\\\\.?)\\\\s*0?', :district_no, '([^0-9]|$)')))
     AND (:district_name = '' OR r.district_norm ILIKE concat('%', :district_name, '%')
-         OR r.districts_old ILIKE concat('%', :district_name, '%')
+         OR r.districts_old_ ILIKE concat('%', :district_name, '%')
          OR r.address ILIKE concat('%', :district_name, '%'))
     AND (:dish = '' OR r.cuisine ILIKE concat('%', :dish, '%') OR r.cuisine_detail ILIKE concat('%', :dish, '%')
-         OR r.restaurant_name ILIKE concat('%', :dish, '%')
+         OR r.restaurant_name ILIKE concat('%', :dish, '%') OR r.menu_dishes_ ILIKE concat('%', :dish, '%')
          OR EXISTS (SELECT 1 FROM videos v WHERE v.restaurant_id = r.restaurant_id AND v.title ILIKE concat('%', :dish, '%')))
     AND (:max_price = 0 OR TRY_CAST(substr(r.price_band, 1, 1) AS INT) <= :max_price)
     AND (:legit_only = 'false' OR r.legit_label = 'Legit')
