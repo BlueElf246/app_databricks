@@ -41,6 +41,7 @@
         "  COALESCE(district, 'Chưa rõ') AS district,\n",
         "  CASE district_source WHEN 'google' THEN 'Google' WHEN 'video' THEN 'Video' WHEN 'ward' THEN 'Từ phường (Google)' ELSE 'Chưa rõ' END AS district_source,\n",
         "  city,\n",
+        "  CASE WHEN location_approx THEN 'Gần đúng (OSM)' ELSE 'Google' END AS location_source,\n",
         "  latitude,\n",
         "  longitude,\n",
         "  thumbnail_url,\n",
@@ -676,6 +677,10 @@
                     {
                       "name": "restaurant_name",
                       "expression": "`restaurant_name`"
+                    },
+                    {
+                      "name": "location_source",
+                      "expression": "`location_source`"
                     }
                   ],
                   "disaggregated": true
@@ -714,6 +719,10 @@
                   {
                     "fieldName": "restaurant_name",
                     "displayName": "Quán"
+                  },
+                  {
+                    "fieldName": "location_source",
+                    "displayName": "Vị trí"
                   }
                 ]
               },
@@ -806,6 +815,10 @@
                     {
                       "name": "address",
                       "expression": "`address`"
+                    },
+                    {
+                      "name": "location_source",
+                      "expression": "`location_source`"
                     },
                     {
                       "name": "maps_url",
@@ -1281,6 +1294,33 @@
                     "displayName": "address"
                   },
                   {
+                    "fieldName": "location_source",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 17,
+                    "title": "Vị trí",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "location_source"
+                  },
+                  {
                     "fieldName": "maps_url",
                     "booleanValues": [
                       "false",
@@ -1297,7 +1337,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": false,
-                    "order": 17,
+                    "order": 18,
                     "title": "maps_url",
                     "allowSearch": false,
                     "alignContent": "left",

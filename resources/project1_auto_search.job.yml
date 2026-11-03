@@ -7,7 +7,7 @@ resources:
     project1_auto_search:
       name: ${var.job_name_prefix}Project 1 — auto search (daily 01h)
       description: >-
-        auto_search (YouTube channels + keywords, Google Maps Text Search Enterprise) → run the refresh job (refresh → Bronze → Silver → Gold → serving).
+        auto_search (YouTube channels + keywords, Google Maps Text Search: 30 Enterprise + 70 Pro per day) → run the refresh job (refresh → Bronze → Silver → Gold → serving).
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
         timezone_id: Asia/Ho_Chi_Minh

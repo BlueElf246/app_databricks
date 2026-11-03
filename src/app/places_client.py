@@ -8,7 +8,7 @@ are two masks (callers count calls per SKU, see search_task.py):
 - "enterprise" (manual searches): adds rating, userRatingCount, priceLevel,
   priceRange, websiteUri, nationalPhoneNumber, regularOpeningHours, so every
   call is Text Search Enterprise (1,000 free calls / month).
-- "pro" (auto_search from 2026-11-01 to 2026-11-03, now unused): only Pro fields (id, name, address,
+- "pro" (auto_search: the calls after the first 30 Enterprise ones each day, 2026-11-03): only Pro fields (id, name, address,
   location, types, business status, Maps link), so every call is Text Search Pro
   (5,000 free calls / month, shared with stg_restaurant_geocode). The missing
   fields come later from Place Details (stg/restaurant_place_details).
