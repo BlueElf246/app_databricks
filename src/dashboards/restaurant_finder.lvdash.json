@@ -182,6 +182,19 @@
         "WHERE c.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
         "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
       ]
+    },
+    {
+      "name": "channels_trend",
+      "displayName": "Kênh đang xu hướng (agg_channel_ranking)",
+      "queryLines": [
+        "-- Channels with >= 3 restaurant review videos: 7-day trend + credibility score\n",
+        "SELECT channel_title, channel_url, thumbnail_url, subscriber_count, view_count, review_videos, new_videos_7d,\n",
+        "       restaurants_reviewed, rated_restaurants, avg_restaurant_rating, views_7d, subscribers_gained_7d,\n",
+        "       round(100 * growth_pct_7d, 1) AS growth_pct_7d, trending_rank, credibility_score, credibility_rank\n",
+        "FROM agg_channel_ranking\n",
+        "WHERE trending_rank IS NOT NULL\n",
+        "ORDER BY trending_rank\n"
+      ]
     }
   ],
   "pages": [
@@ -2502,18 +2515,21 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "video_label",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Video"
-                },
-                "y": {
                   "fieldName": "sum(comment_count)",
                   "scale": {
                     "type": "quantitative"
                   },
                   "displayName": "Số comment"
+                },
+                "y": {
+                  "fieldName": "video_label",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Video",
+                  "sort": {
+                    "by": "natural-order"
+                  }
                 },
                 "color": {
                   "fieldName": "reaction_label",
@@ -2823,7 +2839,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "channels",
+                  "datasetName": "channels_trend",
                   "fields": [
                     {
                       "name": "trending_rank",
