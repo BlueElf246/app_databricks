@@ -119,71 +119,72 @@
       "name": "trend_videos",
       "displayName": "Video review đang hot (agg_video_trending)",
       "queryLines": [
-        "-- Restaurant review videos with the most views gained in the last 7 days (>= 1,000 views)\n",
+        "-- Vietnamese restaurant review videos with the most views gained in the last 7 days (>= 1,000 views)\n",
         "SELECT trending_rank, video_id, title, video_url, thumbnail_url, channel_title, published_date,\n",
         "       views_7d, views_per_day, view_count, round(100 * like_rate, 2) AS like_rate_pct, comment_count,\n",
         "       restaurant_count, COALESCE(NULLIF(restaurants_text, ''), 'Chưa trích xuất quán') AS restaurants_text,\n",
-        "       COALESCE(NULLIF(cuisines, ''), 'Chưa rõ') AS cuisines, city\n",
+        "       COALESCE(NULLIF(cuisines, ''), 'Chưa rõ') AS cuisines, city,\n",
+        "       comments_analyzed, round(100 * positive_share, 1) AS positive_pct, round(100 * negative_share, 1) AS negative_pct,\n",
+        "       CASE WHEN comments_analyzed < 5 THEN 'Chưa đủ comment'\n",
+        "            WHEN negative_share >= 0.3 THEN 'Nhiều chê'\n",
+        "            WHEN positive_share >= 0.6 THEN 'Đa số khen'\n",
+        "            ELSE 'Lẫn lộn' END AS audience_mood\n",
         "FROM agg_video_trending\n",
         "WHERE trending_rank IS NOT NULL\n",
         "ORDER BY trending_rank\n"
       ]
     },
     {
-      "name": "reactions",
-      "displayName": "Biểu cảm theo video (agg_video_reactions)",
+      "name": "video_daily",
+      "displayName": "View tăng mỗi ngày của video hot (agg_video_trending + agg_video_daily)",
       "queryLines": [
-        "-- Top 30 trending videos x audience reaction of their labeled comments\n",
-        "SELECT trending_rank, title, concat('#', CAST(trending_rank AS STRING), ' ', left(title, 40)) AS video_label,\n",
-        "       reaction_label, comment_count, like_count, round(100 * share_of_video, 1) AS share_pct\n",
-        "FROM agg_video_reactions\n"
-      ]
-    },
-    {
-      "name": "top_comments",
-      "displayName": "Comment nổi bật (agg_video_top_comments)",
-      "queryLines": [
-        "-- Top 20 most liked comments of the 30 trending videos, with the reaction\n",
-        "SELECT trending_rank, title, comment_text, like_count, reply_count, posted_date, reaction_label\n",
-        "FROM agg_video_top_comments\n",
-        "ORDER BY trending_rank, like_count DESC\n"
+        "-- Last 14 snapshot days of the 10 hottest videos\n",
+        "SELECT to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date,\n",
+        "       concat('#', CAST(t.trending_rank AS STRING), ' ', left(t.title, 50)) AS video_label, t.title, t.channel_title, t.city,\n",
+        "       d.views_gained, d.view_count\n",
+        "FROM agg_video_daily d\n",
+        "JOIN agg_video_trending t ON t.video_key = d.video_key\n",
+        "WHERE t.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
+        "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
       ]
     },
     {
       "name": "channels",
       "displayName": "Kênh review (agg_channel_ranking)",
       "queryLines": [
-        "-- Channels with >= 3 restaurant review videos: 7-day trend + credibility score\n",
-        "SELECT channel_title, channel_url, thumbnail_url, subscriber_count, view_count, review_videos, new_videos_7d,\n",
-        "       restaurants_reviewed, rated_restaurants, avg_restaurant_rating, views_7d, subscribers_gained_7d,\n",
-        "       round(100 * growth_pct_7d, 1) AS growth_pct_7d, trending_rank, credibility_score, credibility_rank\n",
+        "-- Channels with >= 3 restaurant review videos: credibility\n",
+        "SELECT channel_id, channel_title, channel_url, thumbnail_url, subscriber_count, view_count, review_videos, new_videos_7d,\n",
+        "       restaurants_reviewed, rated_restaurants, avg_restaurant_rating, COALESCE(restaurants_text, 'Chưa trích xuất quán') AS restaurants_text,\n",
+        "       comments_analyzed, round(100 * positive_share, 1) AS positive_pct, round(100 * negative_share, 1) AS negative_pct,\n",
+        "       views_7d, subscribers_gained_7d, round(100 * growth_pct_7d, 1) AS growth_pct_7d, trending_rank, credibility_score, credibility_rank\n",
         "FROM agg_channel_ranking\n",
         "ORDER BY credibility_rank\n"
-      ]
-    },
-    {
-      "name": "channel_daily",
-      "displayName": "View tăng mỗi ngày của kênh (agg_channel_ranking + agg_channel_daily)",
-      "queryLines": [
-        "-- Last 14 snapshot days of the 10 channels with the most views gained in the last 7 days\n",
-        "SELECT to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date, c.channel_title, d.views_gained\n",
-        "FROM agg_channel_daily d\n",
-        "JOIN agg_channel_ranking c ON c.channel_key = d.channel_key\n",
-        "WHERE c.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
-        "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
       ]
     },
     {
       "name": "channels_trend",
       "displayName": "Kênh đang xu hướng (agg_channel_ranking)",
       "queryLines": [
-        "-- Channels with >= 3 restaurant review videos: 7-day trend + credibility score\n",
-        "SELECT channel_title, channel_url, thumbnail_url, subscriber_count, view_count, review_videos, new_videos_7d,\n",
-        "       restaurants_reviewed, rated_restaurants, avg_restaurant_rating, views_7d, subscribers_gained_7d,\n",
-        "       round(100 * growth_pct_7d, 1) AS growth_pct_7d, trending_rank, credibility_score, credibility_rank\n",
+        "-- Channels ranked by views gained in 7 days\n",
+        "SELECT channel_id, channel_title, channel_url, thumbnail_url, subscriber_count, view_count, review_videos, new_videos_7d,\n",
+        "       restaurants_reviewed, rated_restaurants, avg_restaurant_rating, COALESCE(restaurants_text, 'Chưa trích xuất quán') AS restaurants_text,\n",
+        "       comments_analyzed, round(100 * positive_share, 1) AS positive_pct, round(100 * negative_share, 1) AS negative_pct,\n",
+        "       views_7d, subscribers_gained_7d, round(100 * growth_pct_7d, 1) AS growth_pct_7d, trending_rank, credibility_score, credibility_rank\n",
         "FROM agg_channel_ranking\n",
         "WHERE trending_rank IS NOT NULL\n",
         "ORDER BY trending_rank\n"
+      ]
+    },
+    {
+      "name": "channel_daily",
+      "displayName": "View tăng mỗi ngày của kênh (agg_channel_ranking + agg_channel_daily)",
+      "queryLines": [
+        "-- Last 14 snapshot days of the 10 trending channels \n",
+        "SELECT to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date, c.channel_title, d.views_gained, d.subscribers_gained\n",
+        "FROM agg_channel_daily d\n",
+        "JOIN agg_channel_ranking c ON c.channel_key = d.channel_key\n",
+        "WHERE c.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
+        "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
       ]
     }
   ],
@@ -1789,7 +1790,7 @@
             "name": "tv_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "## Video review đang hot\nVideo review quán ăn có **nhiều view tăng nhất trong 7 ngày** (≥ 1.000 view). Video đăng chưa đủ 7 ngày tính toàn bộ view từ lúc đăng (*View/ngày* để so công bằng). Cột **Quán được nhắc** = quán trong video kèm điểm quán. Biểu đồ và bảng dưới cho biết **khán giả phản ứng thế nào** (khen món, chê, thèm, hỏi địa chỉ, khen reviewer) qua 50 comment nhiều like nhất của 30 video hot nhất.\n"
+                "## Video review đang hot\nVideo review quán ăn **Việt Nam** có nhiều view tăng nhất trong 7 ngày (≥ 1.000 view). Biểu đồ đường: view tăng mỗi ngày (top 10 video hot; chọn **Video** để xem riêng từng video). Bảng: các **quán được nhắc** (điểm quán trong ngoặc) và **khán giả nghĩ gì** = % comment khen / chê (AI đọc comment; *Chưa đủ comment* khi < 5 comment đã chấm).\n"
               ]
             }
           },
@@ -1816,6 +1817,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "tv_city_video_daily",
+                "query": {
+                  "datasetName": "video_daily",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -1827,6 +1841,11 @@
                     "fieldName": "city",
                     "displayName": "Thành phố",
                     "queryName": "tv_city_trend_videos"
+                  },
+                  {
+                    "fieldName": "city",
+                    "displayName": "Thành phố",
+                    "queryName": "tv_city_video_daily"
                   }
                 ]
               },
@@ -1859,6 +1878,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "tv_channel_video_daily",
+                "query": {
+                  "datasetName": "video_daily",
+                  "fields": [
+                    {
+                      "name": "channel_title",
+                      "expression": "`channel_title`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -1870,6 +1902,11 @@
                     "fieldName": "channel_title",
                     "displayName": "Kênh",
                     "queryName": "tv_channel_trend_videos"
+                  },
+                  {
+                    "fieldName": "channel_title",
+                    "displayName": "Kênh",
+                    "queryName": "tv_channel_video_daily"
                   }
                 ]
               },
@@ -1904,22 +1941,9 @@
                 }
               },
               {
-                "name": "tv_video_reactions",
+                "name": "tv_video_video_daily",
                 "query": {
-                  "datasetName": "reactions",
-                  "fields": [
-                    {
-                      "name": "title",
-                      "expression": "`title`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "tv_video_top_comments",
-                "query": {
-                  "datasetName": "top_comments",
+                  "datasetName": "video_daily",
                   "fields": [
                     {
                       "name": "title",
@@ -1943,12 +1967,7 @@
                   {
                     "fieldName": "title",
                     "displayName": "Video",
-                    "queryName": "tv_video_reactions"
-                  },
-                  {
-                    "fieldName": "title",
-                    "displayName": "Video",
-                    "queryName": "tv_video_top_comments"
+                    "queryName": "tv_video_video_daily"
                   }
                 ]
               },
@@ -1963,6 +1982,71 @@
             "y": 2,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "l_video_daily",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "video_daily",
+                  "fields": [
+                    {
+                      "name": "snapshot_date",
+                      "expression": "`snapshot_date`"
+                    },
+                    {
+                      "name": "sum(views_gained)",
+                      "expression": "SUM(`views_gained`)"
+                    },
+                    {
+                      "name": "video_label",
+                      "expression": "`video_label`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "snapshot_date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Ngày"
+                },
+                "y": {
+                  "fieldName": "sum(views_gained)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "View tăng trong ngày"
+                },
+                "color": {
+                  "fieldName": "video_label",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Video"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Xu hướng: view tăng mỗi ngày, 14 ngày gần nhất"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 9
           }
         },
         {
@@ -1991,10 +2075,6 @@
                       "expression": "`channel_title`"
                     },
                     {
-                      "name": "published_date",
-                      "expression": "`published_date`"
-                    },
-                    {
                       "name": "views_7d",
                       "expression": "`views_7d`"
                     },
@@ -2003,20 +2083,32 @@
                       "expression": "`views_per_day`"
                     },
                     {
-                      "name": "view_count",
-                      "expression": "`view_count`"
-                    },
-                    {
-                      "name": "like_rate_pct",
-                      "expression": "`like_rate_pct`"
-                    },
-                    {
                       "name": "restaurants_text",
                       "expression": "`restaurants_text`"
                     },
                     {
-                      "name": "cuisines",
-                      "expression": "`cuisines`"
+                      "name": "audience_mood",
+                      "expression": "`audience_mood`"
+                    },
+                    {
+                      "name": "positive_pct",
+                      "expression": "`positive_pct`"
+                    },
+                    {
+                      "name": "negative_pct",
+                      "expression": "`negative_pct`"
+                    },
+                    {
+                      "name": "comments_analyzed",
+                      "expression": "`comments_analyzed`"
+                    },
+                    {
+                      "name": "published_date",
+                      "expression": "`published_date`"
+                    },
+                    {
+                      "name": "view_count",
+                      "expression": "`view_count`"
                     },
                     {
                       "name": "video_url",
@@ -2141,33 +2233,6 @@
                     "displayName": "channel_title"
                   },
                   {
-                    "fieldName": "published_date",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "date",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 4,
-                    "title": "Ngày đăng",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "published_date"
-                  },
-                  {
                     "fieldName": "views_7d",
                     "booleanValues": [
                       "false",
@@ -2184,7 +2249,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 5,
+                    "order": 4,
                     "title": "View 7 ngày",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -2211,7 +2276,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 6,
+                    "order": 5,
                     "title": "View/ngày",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -2220,60 +2285,6 @@
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
                     "displayName": "views_per_day"
-                  },
-                  {
-                    "fieldName": "view_count",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 7,
-                    "title": "Tổng view",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "view_count"
-                  },
-                  {
-                    "fieldName": "like_rate_pct",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 8,
-                    "title": "% like",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "like_rate_pct"
                   },
                   {
                     "fieldName": "restaurants_text",
@@ -2292,7 +2303,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 9,
+                    "order": 6,
                     "title": "Quán được nhắc (điểm)",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -2303,7 +2314,7 @@
                     "displayName": "restaurants_text"
                   },
                   {
-                    "fieldName": "cuisines",
+                    "fieldName": "audience_mood",
                     "booleanValues": [
                       "false",
                       "true"
@@ -2319,15 +2330,150 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": true,
-                    "order": 10,
-                    "title": "Khẩu vị",
+                    "order": 7,
+                    "title": "Khán giả",
                     "allowSearch": false,
                     "alignContent": "left",
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "cuisines"
+                    "displayName": "audience_mood"
+                  },
+                  {
+                    "fieldName": "positive_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 8,
+                    "title": "% khen",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "positive_pct"
+                  },
+                  {
+                    "fieldName": "negative_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 9,
+                    "title": "% chê",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "negative_pct"
+                  },
+                  {
+                    "fieldName": "comments_analyzed",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 10,
+                    "title": "Comment đã chấm",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "comments_analyzed"
+                  },
+                  {
+                    "fieldName": "published_date",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "date",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 11,
+                    "title": "Ngày đăng",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "published_date"
+                  },
+                  {
+                    "fieldName": "view_count",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 12,
+                    "title": "Tổng view",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "view_count"
                   },
                   {
                     "fieldName": "video_url",
@@ -2346,7 +2492,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": false,
-                    "order": 11,
+                    "order": 13,
                     "title": "video_url",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -2366,340 +2512,15 @@
               "withRowNumber": false,
               "frame": {
                 "showTitle": true,
-                "title": "Top video đang hot (bấm tiêu đề để mở YouTube)"
+                "title": "Video đang hot: quán được nhắc và khán giả nói gì (bấm tiêu đề để mở YouTube)"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 3,
+            "y": 12,
             "width": 6,
-            "height": 11
-          }
-        },
-        {
-          "widget": {
-            "name": "b_reactions",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "reactions",
-                  "fields": [
-                    {
-                      "name": "video_label",
-                      "expression": "`video_label`"
-                    },
-                    {
-                      "name": "sum(comment_count)",
-                      "expression": "SUM(`comment_count`)"
-                    },
-                    {
-                      "name": "reaction_label",
-                      "expression": "`reaction_label`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "bar",
-              "encodings": {
-                "x": {
-                  "fieldName": "sum(comment_count)",
-                  "scale": {
-                    "type": "quantitative"
-                  },
-                  "displayName": "Số comment"
-                },
-                "y": {
-                  "fieldName": "video_label",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Video",
-                  "sort": {
-                    "by": "natural-order"
-                  }
-                },
-                "color": {
-                  "fieldName": "reaction_label",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Biểu cảm"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Khán giả phản ứng gì (số comment theo biểu cảm, top video hot)"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 14,
-            "width": 6,
-            "height": 9
-          }
-        },
-        {
-          "widget": {
-            "name": "t_top_comments",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "top_comments",
-                  "fields": [
-                    {
-                      "name": "trending_rank",
-                      "expression": "`trending_rank`"
-                    },
-                    {
-                      "name": "title",
-                      "expression": "`title`"
-                    },
-                    {
-                      "name": "comment_text",
-                      "expression": "`comment_text`"
-                    },
-                    {
-                      "name": "reaction_label",
-                      "expression": "`reaction_label`"
-                    },
-                    {
-                      "name": "like_count",
-                      "expression": "`like_count`"
-                    },
-                    {
-                      "name": "reply_count",
-                      "expression": "`reply_count`"
-                    },
-                    {
-                      "name": "posted_date",
-                      "expression": "`posted_date`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "trending_rank",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 0,
-                    "title": "#",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "trending_rank"
-                  },
-                  {
-                    "fieldName": "title",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 1,
-                    "title": "Video",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "title"
-                  },
-                  {
-                    "fieldName": "comment_text",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 2,
-                    "title": "Comment",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "comment_text"
-                  },
-                  {
-                    "fieldName": "reaction_label",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 3,
-                    "title": "Biểu cảm",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "reaction_label"
-                  },
-                  {
-                    "fieldName": "like_count",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 4,
-                    "title": "Like",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "like_count"
-                  },
-                  {
-                    "fieldName": "reply_count",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 5,
-                    "title": "Trả lời",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "reply_count"
-                  },
-                  {
-                    "fieldName": "posted_date",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "date",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 6,
-                    "title": "Ngày",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "posted_date"
-                  }
-                ]
-              },
-              "invisibleColumns": [],
-              "allowHTMLByDefault": false,
-              "itemsPerPage": 25,
-              "paginationSize": "default",
-              "condensed": true,
-              "withRowNumber": false,
-              "frame": {
-                "showTitle": true,
-                "title": "Comment nhiều like nhất của video hot"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 23,
-            "width": 6,
-            "height": 12
+            "height": 14
           }
         }
       ]
@@ -2723,6 +2544,150 @@
             "y": 0,
             "width": 6,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ch_channel",
+            "queries": [
+              {
+                "name": "ch_channel_channels_trend",
+                "query": {
+                  "datasetName": "channels_trend",
+                  "fields": [
+                    {
+                      "name": "channel_title",
+                      "expression": "`channel_title`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ch_channel_channels",
+                "query": {
+                  "datasetName": "channels",
+                  "fields": [
+                    {
+                      "name": "channel_title",
+                      "expression": "`channel_title`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "ch_channel_channel_daily",
+                "query": {
+                  "datasetName": "channel_daily",
+                  "fields": [
+                    {
+                      "name": "channel_title",
+                      "expression": "`channel_title`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "channel_title",
+                    "displayName": "Kênh",
+                    "queryName": "ch_channel_channels_trend"
+                  },
+                  {
+                    "fieldName": "channel_title",
+                    "displayName": "Kênh",
+                    "queryName": "ch_channel_channels"
+                  },
+                  {
+                    "fieldName": "channel_title",
+                    "displayName": "Kênh",
+                    "queryName": "ch_channel_channel_daily"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Kênh"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "l_ch_daily",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "channel_daily",
+                  "fields": [
+                    {
+                      "name": "snapshot_date",
+                      "expression": "`snapshot_date`"
+                    },
+                    {
+                      "name": "sum(views_gained)",
+                      "expression": "SUM(`views_gained`)"
+                    },
+                    {
+                      "name": "channel_title",
+                      "expression": "`channel_title`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "snapshot_date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Ngày"
+                },
+                "y": {
+                  "fieldName": "sum(views_gained)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "View tăng trong ngày"
+                },
+                "color": {
+                  "fieldName": "channel_title",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Kênh"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Xu hướng: view tăng mỗi ngày của kênh, 14 ngày gần nhất (top 10 kênh xu hướng)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 9
           }
         },
         {
@@ -2757,6 +2722,18 @@
                     {
                       "name": "new_videos_7d",
                       "expression": "`new_videos_7d`"
+                    },
+                    {
+                      "name": "restaurants_text",
+                      "expression": "`restaurants_text`"
+                    },
+                    {
+                      "name": "positive_pct",
+                      "expression": "`positive_pct`"
+                    },
+                    {
+                      "name": "negative_pct",
+                      "expression": "`negative_pct`"
                     },
                     {
                       "name": "growth_pct_7d",
@@ -2933,7 +2910,7 @@
                     "displayAs": "number",
                     "visible": true,
                     "order": 5,
-                    "title": "Video review mới",
+                    "title": "Video mới",
                     "allowSearch": false,
                     "alignContent": "right",
                     "allowHTML": false,
@@ -2941,6 +2918,87 @@
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
                     "displayName": "new_videos_7d"
+                  },
+                  {
+                    "fieldName": "restaurants_text",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 6,
+                    "title": "Quán kênh đã review",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "restaurants_text"
+                  },
+                  {
+                    "fieldName": "positive_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 7,
+                    "title": "% khen",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "positive_pct"
+                  },
+                  {
+                    "fieldName": "negative_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 8,
+                    "title": "% chê",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "negative_pct"
                   },
                   {
                     "fieldName": "growth_pct_7d",
@@ -2959,7 +3017,7 @@
                     "type": "float",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 6,
+                    "order": 9,
                     "title": "% so tuần trước",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -2986,7 +3044,7 @@
                     "type": "integer",
                     "displayAs": "number",
                     "visible": true,
-                    "order": 7,
+                    "order": 10,
                     "title": "Subscriber",
                     "allowSearch": false,
                     "alignContent": "right",
@@ -3013,7 +3071,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": false,
-                    "order": 8,
+                    "order": 11,
                     "title": "channel_url",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -3039,9 +3097,9 @@
           },
           "position": {
             "x": 0,
-            "y": 2,
-            "width": 3,
-            "height": 12
+            "y": 12,
+            "width": 6,
+            "height": 11
           }
         },
         {
@@ -3088,6 +3146,18 @@
                     {
                       "name": "avg_restaurant_rating",
                       "expression": "`avg_restaurant_rating`"
+                    },
+                    {
+                      "name": "restaurants_text",
+                      "expression": "`restaurants_text`"
+                    },
+                    {
+                      "name": "positive_pct",
+                      "expression": "`positive_pct`"
+                    },
+                    {
+                      "name": "negative_pct",
+                      "expression": "`negative_pct`"
                     },
                     {
                       "name": "channel_url",
@@ -3347,6 +3417,87 @@
                     "displayName": "avg_restaurant_rating"
                   },
                   {
+                    "fieldName": "restaurants_text",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 9,
+                    "title": "Quán tiêu biểu",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "restaurants_text"
+                  },
+                  {
+                    "fieldName": "positive_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 10,
+                    "title": "% khen",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "positive_pct"
+                  },
+                  {
+                    "fieldName": "negative_pct",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 11,
+                    "title": "% chê",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "negative_pct"
+                  },
+                  {
                     "fieldName": "channel_url",
                     "booleanValues": [
                       "false",
@@ -3363,7 +3514,7 @@
                     "type": "string",
                     "displayAs": "string",
                     "visible": false,
-                    "order": 9,
+                    "order": 12,
                     "title": "channel_url",
                     "allowSearch": false,
                     "alignContent": "left",
@@ -3388,75 +3539,10 @@
             }
           },
           "position": {
-            "x": 3,
-            "y": 2,
-            "width": 3,
-            "height": 12
-          }
-        },
-        {
-          "widget": {
-            "name": "l_ch_daily",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "channel_daily",
-                  "fields": [
-                    {
-                      "name": "snapshot_date",
-                      "expression": "`snapshot_date`"
-                    },
-                    {
-                      "name": "sum(views_gained)",
-                      "expression": "SUM(`views_gained`)"
-                    },
-                    {
-                      "name": "channel_title",
-                      "expression": "`channel_title`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "line",
-              "encodings": {
-                "x": {
-                  "fieldName": "snapshot_date",
-                  "scale": {
-                    "type": "temporal"
-                  },
-                  "displayName": "Ngày"
-                },
-                "y": {
-                  "fieldName": "sum(views_gained)",
-                  "scale": {
-                    "type": "quantitative"
-                  },
-                  "displayName": "View tăng trong ngày"
-                },
-                "color": {
-                  "fieldName": "channel_title",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Kênh"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "View tăng mỗi ngày, 14 ngày gần nhất (top 10 kênh xu hướng)"
-              }
-            }
-          },
-          "position": {
             "x": 0,
-            "y": 14,
+            "y": 23,
             "width": 6,
-            "height": 9
+            "height": 11
           }
         }
       ]
