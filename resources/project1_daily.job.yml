@@ -165,6 +165,7 @@ resources:
             - task_key: stg_osm_restaurants
             - task_key: stg_restaurant_place_details  # after stg_videos, classification, transcripts, mentions, geocode, stg_places
             - task_key: stg_comment_sentiment         # after stg_comments, mentions, classification
+            - task_key: stg_comment_reaction          # after stg_comments, stg_videos, classification
           condition_task:
             op: EQUAL_TO
             left: "1"
@@ -229,6 +230,17 @@ resources:
               max_comments: "5000"
           timeout_seconds: 3600
 
+        # Dashboard v3 page 2 (2026-11-03): LLM reaction label (praise_food / complaint / craving / ask_info /
+        # praise_video / other) of the top 50 most liked comments of the 30 trending restaurant review videos
+        - task_key: stg_comment_reaction
+          depends_on:
+            - task_key: stg_comments
+            - task_key: stg_videos
+            - task_key: stg_video_classification
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/comment_reaction.ipynb
+          timeout_seconds: 1800
+
         # Restaurant x comment (split credit) with sentiment, for agg_restaurant_ranking and the dashboard
         - task_key: gold_agg_comments
           depends_on: [{task_key: gold_checks}]
@@ -245,6 +257,24 @@ resources:
             notebook_path: ../src/notebooks/gold/agg_restaurant_ranking.ipynb
           timeout_seconds: 1800
 
+        # Dashboard v3 page 2: trending restaurant review videos (views in 7 days) + their restaurants + reactions
+        - task_key: gold_agg_video_trending
+          depends_on:
+            - task_key: gold_agg_ranking
+            - task_key: gold_agg_daily_snapshots
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_video_trending.ipynb
+          timeout_seconds: 1800
+
+        # Dashboard v3 page 3: trending channels (views in 7 days) + credibility score
+        - task_key: gold_agg_channel_ranking
+          depends_on:
+            - task_key: gold_agg_ranking
+            - task_key: gold_agg_daily_snapshots
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/agg_channel_ranking.ipynb
+          timeout_seconds: 1800
+
         # Bronze keeps 7 days, and only rows already loaded into silver (silver watermark); runs after silver + checks
         - task_key: bronze_retention
           depends_on: [{task_key: gold_checks}]  # after silver_done, so every Silver task has read Bronze
@@ -257,6 +287,8 @@ resources:
         - task_key: run_summary
           depends_on:
             - task_key: gold_agg_ranking
+            - task_key: gold_agg_video_trending
+            - task_key: gold_agg_channel_ranking
             - task_key: gold_place_rating
             - task_key: bronze_retention
           run_if: ALL_DONE
