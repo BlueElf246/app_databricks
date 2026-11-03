@@ -55,6 +55,7 @@
         "  CASE WHEN has_youtube_review THEN 'Có review YouTube' ELSE 'Chưa có video' END AS youtube_review\n",
         "FROM agg_restaurant_ranking\n",
         "WHERE is_active  -- permanently closed on Google: hidden (dim_restaurant v2)\n",
+        "  AND (latitude IS NULL OR (latitude BETWEEN 8 AND 24 AND longitude BETWEEN 102 AND 110))  -- outside Vietnam (2 Unknown places) zoomed the map out to the world\n",
         "ORDER BY restaurant_score DESC NULLS LAST, google_rating_count DESC NULLS LAST, credited_views DESC\n"
       ]
     },
@@ -118,8 +119,8 @@
         "-- City x cuisine: number of restaurants, average restaurant_score, the 3 typical restaurants\n",
         "SELECT city, cuisine, restaurant_count, rated_count, youtube_reviewed_count, avg_score,\n",
         "       top_restaurants_text,\n",
-        "       top_restaurants[0].restaurant_name AS top1_name,\n",
-        "       top_restaurants[0].maps_url AS top1_url\n",
+        "       get(top_restaurants, 0).restaurant_name AS top1_name,\n",
+        "       get(top_restaurants, 0).maps_url AS top1_url\n",
         "FROM agg_cuisine_summary\n",
         "ORDER BY restaurant_count DESC\n"
       ]
