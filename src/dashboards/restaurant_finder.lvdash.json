@@ -52,7 +52,9 @@
         "  ward_new AS ward,\n",
         "  CASE WHEN is_open_24h THEN 'Mở 24/24' WHEN open_time IS NOT NULL THEN concat(open_time, ' – ', close_time) END AS opening_hours,\n",
         "  signature_dishes,\n",
-        "  CASE WHEN has_youtube_review THEN 'Có review YouTube' ELSE 'Chưa có video' END AS youtube_review\n",
+        "  CASE WHEN has_youtube_review THEN 'Có review YouTube' ELSE 'Chưa có video' END AS youtube_review,\n",
+        "  -- sortable label for the cuisine table: best score first (top 3 per cuisine under the page filters)\n",
+        "  CASE WHEN restaurant_score IS NOT NULL THEN concat(lpad(CAST(CAST(round(1000 - restaurant_score * 10) AS INT) AS STRING), 4, '0'), '|', restaurant_name, ' (', CAST(round(restaurant_score, 1) AS STRING), ')') END AS score_label\n",
         "FROM agg_restaurant_ranking\n",
         "WHERE is_active  -- permanently closed on Google: hidden (dim_restaurant v2)\n",
         "  AND (latitude IS NULL OR (latitude BETWEEN 8 AND 24 AND longitude BETWEEN 102 AND 110))  -- outside Vietnam (2 Unknown places) zoomed the map out to the world\n",
@@ -110,19 +112,6 @@
         "-- First version of each restaurant_id = the day it entered the pipeline (serving: agg_new_restaurants_daily)\n",
         "SELECT first_seen_date, source, restaurants\n",
         "FROM agg_new_restaurants_daily"
-      ]
-    },
-    {
-      "name": "cuisine",
-      "displayName": "Khẩu vị (agg_cuisine_summary)",
-      "queryLines": [
-        "-- City x cuisine: number of restaurants, average restaurant_score, the 3 typical restaurants\n",
-        "SELECT city, cuisine, restaurant_count, rated_count, youtube_reviewed_count, avg_score,\n",
-        "       top_restaurants_text,\n",
-        "       get(top_restaurants, 0).restaurant_name AS top1_name,\n",
-        "       get(top_restaurants, 0).maps_url AS top1_url\n",
-        "FROM agg_cuisine_summary\n",
-        "ORDER BY restaurant_count DESC\n"
       ]
     },
     {
@@ -237,19 +226,6 @@
                 }
               },
               {
-                "name": "f_city_cuisine",
-                "query": {
-                  "datasetName": "cuisine",
-                  "fields": [
-                    {
-                      "name": "city",
-                      "expression": "`city`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
                 "name": "f_city_videos",
                 "query": {
                   "datasetName": "videos",
@@ -272,11 +248,6 @@
                     "fieldName": "city",
                     "displayName": "Thành phố",
                     "queryName": "f_city_restaurants"
-                  },
-                  {
-                    "fieldName": "city",
-                    "displayName": "Thành phố",
-                    "queryName": "f_city_cuisine"
                   },
                   {
                     "fieldName": "city",
@@ -357,19 +328,6 @@
                   ],
                   "disaggregated": false
                 }
-              },
-              {
-                "name": "f_cuisine_cuisine",
-                "query": {
-                  "datasetName": "cuisine",
-                  "fields": [
-                    {
-                      "name": "cuisine",
-                      "expression": "`cuisine`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
               }
             ],
             "spec": {
@@ -381,11 +339,6 @@
                     "fieldName": "cuisine",
                     "displayName": "Khẩu vị",
                     "queryName": "f_cuisine_restaurants"
-                  },
-                  {
-                    "fieldName": "cuisine",
-                    "displayName": "Khẩu vị",
-                    "queryName": "f_cuisine_cuisine"
                   }
                 ]
               },
@@ -810,42 +763,34 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "cuisine",
+                  "datasetName": "restaurants",
                   "fields": [
                     {
                       "name": "cuisine",
                       "expression": "`cuisine`"
                     },
                     {
-                      "name": "restaurant_count",
-                      "expression": "`restaurant_count`"
+                      "name": "count(restaurant_id)",
+                      "expression": "COUNT(`restaurant_id`)"
                     },
                     {
-                      "name": "rated_count",
-                      "expression": "`rated_count`"
+                      "name": "count(restaurant_score)",
+                      "expression": "COUNT(`restaurant_score`)"
                     },
                     {
-                      "name": "youtube_reviewed_count",
-                      "expression": "`youtube_reviewed_count`"
+                      "name": "youtube_reviewed",
+                      "expression": "SUM(CASE WHEN `youtube_review` = 'Có review YouTube' THEN 1 ELSE 0 END)"
                     },
                     {
-                      "name": "avg_score",
-                      "expression": "`avg_score`"
+                      "name": "avg(restaurant_score)",
+                      "expression": "AVG(`restaurant_score`)"
                     },
                     {
-                      "name": "top_restaurants_text",
-                      "expression": "`top_restaurants_text`"
-                    },
-                    {
-                      "name": "top1_name",
-                      "expression": "`top1_name`"
-                    },
-                    {
-                      "name": "top1_url",
-                      "expression": "`top1_url`"
+                      "name": "top_restaurants",
+                      "expression": "ARRAY_JOIN(TRANSFORM(SLICE(ARRAY_SORT(COLLECT_LIST(`score_label`)), 1, 3), x -> SUBSTRING(x, 6)), ' · ')"
                     }
                   ],
-                  "disaggregated": true
+                  "disaggregated": false
                 }
               }
             ],
@@ -882,7 +827,7 @@
                     "displayName": "cuisine"
                   },
                   {
-                    "fieldName": "restaurant_count",
+                    "fieldName": "count(restaurant_id)",
                     "booleanValues": [
                       "false",
                       "true"
@@ -906,10 +851,10 @@
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "restaurant_count"
+                    "displayName": "count(restaurant_id)"
                   },
                   {
-                    "fieldName": "rated_count",
+                    "fieldName": "count(restaurant_score)",
                     "booleanValues": [
                       "false",
                       "true"
@@ -926,17 +871,17 @@
                     "displayAs": "number",
                     "visible": true,
                     "order": 2,
-                    "title": "Có rating",
+                    "title": "Có điểm",
                     "allowSearch": false,
                     "alignContent": "right",
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "rated_count"
+                    "displayName": "count(restaurant_score)"
                   },
                   {
-                    "fieldName": "youtube_reviewed_count",
+                    "fieldName": "youtube_reviewed",
                     "booleanValues": [
                       "false",
                       "true"
@@ -960,10 +905,10 @@
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "youtube_reviewed_count"
+                    "displayName": "youtube_reviewed"
                   },
                   {
-                    "fieldName": "avg_score",
+                    "fieldName": "avg(restaurant_score)",
                     "booleanValues": [
                       "false",
                       "true"
@@ -987,10 +932,11 @@
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "avg_score"
+                    "displayName": "avg(restaurant_score)",
+                    "numberFormat": "0.0"
                   },
                   {
-                    "fieldName": "top_restaurants_text",
+                    "fieldName": "top_restaurants",
                     "booleanValues": [
                       "false",
                       "true"
@@ -1007,68 +953,14 @@
                     "displayAs": "string",
                     "visible": true,
                     "order": 5,
-                    "title": "Top quán tiêu biểu",
+                    "title": "Top 3 quán tiêu biểu (điểm)",
                     "allowSearch": false,
                     "alignContent": "left",
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
                     "preserveWhitespace": false,
-                    "displayName": "top_restaurants_text"
-                  },
-                  {
-                    "fieldName": "top1_name",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ top1_url }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "link",
-                    "visible": true,
-                    "order": 6,
-                    "title": "Quán số 1",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "top1_name"
-                  },
-                  {
-                    "fieldName": "top1_url",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": false,
-                    "order": 7,
-                    "title": "top1_url",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "displayName": "top1_url"
+                    "displayName": "top_restaurants"
                   }
                 ]
               },
@@ -1080,7 +972,7 @@
               "withRowNumber": false,
               "frame": {
                 "showTitle": true,
-                "title": "Khẩu vị: số quán và quán tiêu biểu (điểm quán trong ngoặc)"
+                "title": "Khẩu vị: số quán và 3 quán tiêu biểu (theo bộ lọc ở trên; điểm quán trong ngoặc)"
               }
             }
           },
