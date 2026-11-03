@@ -135,17 +135,13 @@
       ]
     },
     {
-      "name": "video_daily",
-      "displayName": "View tăng mỗi ngày của video hot (agg_video_trending + agg_video_daily)",
+      "name": "video_hourly",
+      "displayName": "View mỗi giờ của video hot (agg_video_hourly)",
       "queryLines": [
-        "-- Last 14 snapshot days of the 10 hottest videos\n",
-        "SELECT to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date,\n",
-        "       concat('#', CAST(t.trending_rank AS STRING), ' ', left(t.title, 50)) AS video_label, t.title, t.channel_title, t.city,\n",
-        "       d.views_gained, d.view_count\n",
-        "FROM agg_video_daily d\n",
-        "JOIN agg_video_trending t ON t.video_key = d.video_key\n",
-        "WHERE t.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
-        "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
+        "-- Top 10 trending videos x hour (every read, ~3 h apart): views per hour since the previous read\n",
+        "SELECT hour_ts, concat('#', CAST(trending_rank AS STRING), ' ', left(title, 50)) AS video_label, title, channel_title, city,\n",
+        "       views_per_hour, views_gained, view_count\n",
+        "FROM agg_video_hourly\n"
       ]
     },
     {
@@ -176,15 +172,13 @@
       ]
     },
     {
-      "name": "channel_daily",
-      "displayName": "View tăng mỗi ngày của kênh (agg_channel_ranking + agg_channel_daily)",
+      "name": "channel_hourly",
+      "displayName": "View mỗi giờ của kênh (agg_channel_hourly)",
       "queryLines": [
-        "-- Last 14 snapshot days of the 10 trending channels \n",
-        "SELECT to_date(CAST(d.snapshot_date_key AS STRING), 'yyyyMMdd') AS snapshot_date, c.channel_title, d.views_gained, d.subscribers_gained\n",
-        "FROM agg_channel_daily d\n",
-        "JOIN agg_channel_ranking c ON c.channel_key = d.channel_key\n",
-        "WHERE c.trending_rank <= 10 AND NOT d.is_first_snapshot\n",
-        "  AND d.snapshot_date_key >= CAST(date_format(date_sub(current_date(), 14), 'yyyyMMdd') AS INT)\n"
+        "-- Top 10 trending channels x hour (every read, ~3 h apart): views per hour since the previous read\n",
+        "SELECT hour_ts, channel_title, trending_rank, credibility_rank, views_per_hour, views_gained, subscribers_gained, view_count\n",
+        "FROM agg_channel_hourly\n",
+        "WHERE trending_rank <= 10\n"
       ]
     }
   ],
@@ -1790,7 +1784,7 @@
             "name": "tv_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "## Video review đang hot\nVideo review quán ăn **Việt Nam** có nhiều view tăng nhất trong 7 ngày (≥ 1.000 view). Biểu đồ đường: view tăng mỗi ngày (top 10 video hot; chọn **Video** để xem riêng từng video). Bảng: các **quán được nhắc** (điểm quán trong ngoặc) và **khán giả nghĩ gì** = % comment khen / chê (AI đọc comment; *Chưa đủ comment* khi < 5 comment đã chấm).\n"
+                "## Video review đang hot\nVideo review quán ăn **Việt Nam** có nhiều view tăng nhất trong 7 ngày (≥ 1.000 view). Biểu đồ đường: **view / giờ** của top 10 video hot (mỗi điểm = 1 lần đọc số view, khoảng 3 giờ / lần; chọn **Video** để xem riêng). Bảng: các **quán được nhắc** (điểm quán trong ngoặc) và **khán giả nghĩ gì** = % comment khen / chê (AI đọc comment; *Chưa đủ comment* khi < 5 comment đã chấm).\n"
               ]
             }
           },
@@ -1819,9 +1813,9 @@
                 }
               },
               {
-                "name": "tv_city_video_daily",
+                "name": "tv_city_video_hourly",
                 "query": {
-                  "datasetName": "video_daily",
+                  "datasetName": "video_hourly",
                   "fields": [
                     {
                       "name": "city",
@@ -1845,7 +1839,7 @@
                   {
                     "fieldName": "city",
                     "displayName": "Thành phố",
-                    "queryName": "tv_city_video_daily"
+                    "queryName": "tv_city_video_hourly"
                   }
                 ]
               },
@@ -1880,9 +1874,9 @@
                 }
               },
               {
-                "name": "tv_channel_video_daily",
+                "name": "tv_channel_video_hourly",
                 "query": {
-                  "datasetName": "video_daily",
+                  "datasetName": "video_hourly",
                   "fields": [
                     {
                       "name": "channel_title",
@@ -1906,7 +1900,7 @@
                   {
                     "fieldName": "channel_title",
                     "displayName": "Kênh",
-                    "queryName": "tv_channel_video_daily"
+                    "queryName": "tv_channel_video_hourly"
                   }
                 ]
               },
@@ -1941,9 +1935,9 @@
                 }
               },
               {
-                "name": "tv_video_video_daily",
+                "name": "tv_video_video_hourly",
                 "query": {
-                  "datasetName": "video_daily",
+                  "datasetName": "video_hourly",
                   "fields": [
                     {
                       "name": "title",
@@ -1967,7 +1961,7 @@
                   {
                     "fieldName": "title",
                     "displayName": "Video",
-                    "queryName": "tv_video_video_daily"
+                    "queryName": "tv_video_video_hourly"
                   }
                 ]
               },
@@ -1986,20 +1980,20 @@
         },
         {
           "widget": {
-            "name": "l_video_daily",
+            "name": "l_video_hourly",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "video_daily",
+                  "datasetName": "video_hourly",
                   "fields": [
                     {
-                      "name": "snapshot_date",
-                      "expression": "`snapshot_date`"
+                      "name": "hourly(hour_ts)",
+                      "expression": "DATE_TRUNC(\"HOUR\", `hour_ts`)"
                     },
                     {
-                      "name": "sum(views_gained)",
-                      "expression": "SUM(`views_gained`)"
+                      "name": "sum(views_per_hour)",
+                      "expression": "SUM(`views_per_hour`)"
                     },
                     {
                       "name": "video_label",
@@ -2015,18 +2009,18 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "snapshot_date",
+                  "fieldName": "hourly(hour_ts)",
                   "scale": {
                     "type": "temporal"
                   },
-                  "displayName": "Ngày"
+                  "displayName": "Giờ"
                 },
                 "y": {
-                  "fieldName": "sum(views_gained)",
+                  "fieldName": "sum(views_per_hour)",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "View tăng trong ngày"
+                  "displayName": "View / giờ"
                 },
                 "color": {
                   "fieldName": "video_label",
@@ -2038,7 +2032,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Xu hướng: view tăng mỗi ngày, 14 ngày gần nhất"
+                "title": "Xu hướng theo giờ: view / giờ của top 10 video hot, 7 ngày (mỗi điểm = 1 lần đọc, ~3 giờ / lần)"
               }
             }
           },
@@ -2577,9 +2571,9 @@
                 }
               },
               {
-                "name": "ch_channel_channel_daily",
+                "name": "ch_channel_channel_hourly",
                 "query": {
-                  "datasetName": "channel_daily",
+                  "datasetName": "channel_hourly",
                   "fields": [
                     {
                       "name": "channel_title",
@@ -2608,7 +2602,7 @@
                   {
                     "fieldName": "channel_title",
                     "displayName": "Kênh",
-                    "queryName": "ch_channel_channel_daily"
+                    "queryName": "ch_channel_channel_hourly"
                   }
                 ]
               },
@@ -2627,20 +2621,20 @@
         },
         {
           "widget": {
-            "name": "l_ch_daily",
+            "name": "l_ch_hourly",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "channel_daily",
+                  "datasetName": "channel_hourly",
                   "fields": [
                     {
-                      "name": "snapshot_date",
-                      "expression": "`snapshot_date`"
+                      "name": "hourly(hour_ts)",
+                      "expression": "DATE_TRUNC(\"HOUR\", `hour_ts`)"
                     },
                     {
-                      "name": "sum(views_gained)",
-                      "expression": "SUM(`views_gained`)"
+                      "name": "sum(views_per_hour)",
+                      "expression": "SUM(`views_per_hour`)"
                     },
                     {
                       "name": "channel_title",
@@ -2656,18 +2650,18 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "snapshot_date",
+                  "fieldName": "hourly(hour_ts)",
                   "scale": {
                     "type": "temporal"
                   },
-                  "displayName": "Ngày"
+                  "displayName": "Giờ"
                 },
                 "y": {
-                  "fieldName": "sum(views_gained)",
+                  "fieldName": "sum(views_per_hour)",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "View tăng trong ngày"
+                  "displayName": "View / giờ"
                 },
                 "color": {
                   "fieldName": "channel_title",
@@ -2679,7 +2673,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Xu hướng: view tăng mỗi ngày của kênh, 14 ngày gần nhất (top 10 kênh xu hướng)"
+                "title": "Xu hướng theo giờ: view / giờ của top 10 kênh xu hướng, 7 ngày (mỗi điểm = 1 lần đọc, ~3 giờ / lần)"
               }
             }
           },
