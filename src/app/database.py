@@ -590,6 +590,34 @@ def places_calls_this_month(source: str | None = None, sku: str = "enterprise") 
             return int(cur.fetchone()[0])
 
 
+def keywords_of_unrated_places(limit: int) -> list[dict[str, Any]]:
+    """Search keywords whose results include places without a Google rating, most unrated places first.
+
+    Used by search_task.run_backfill_ratings. Places closed for good on Google are skipped.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f'SET search_path TO "{APP_SCHEMA}"')
+            try:
+                cur.execute(
+                    """
+                    SELECT r.search_keyword, COUNT(DISTINCT r.place_id) AS unrated_places
+                    FROM place_search_results r
+                    JOIN places p ON p.place_id = r.place_id
+                    WHERE p.rating IS NULL
+                      AND COALESCE(p.business_status, '') <> 'CLOSED_PERMANENTLY'
+                      AND r.search_keyword IS NOT NULL AND r.search_keyword <> ''
+                    GROUP BY r.search_keyword
+                    ORDER BY unrated_places DESC, r.search_keyword
+                    LIMIT %s
+                    """,
+                    (limit,),
+                )
+            except psycopg.errors.UndefinedTable:
+                return []
+            return [{"keyword": k, "unrated_places": int(n)} for k, n in cur.fetchall()]
+
+
 def upsert_places(places: list[dict[str, Any]], source: str, sku: str = "enterprise") -> None:
     """Insert or update Google Places (latest values per place_id).
 

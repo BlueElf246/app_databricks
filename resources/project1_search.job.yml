@@ -8,7 +8,7 @@ resources:
       name: ${var.job_name_prefix}Project 1 — keyword search (YouTube / Google Places)
       description: >-
         mode=youtube → videos / channels / search_results; mode=places → places / place_search_results.
-        Every real run writes public.search_runs. Places capped at 800 calls per month.
+        mode=backfill_ratings → re-runs keywords of places without a Google rating. Every real run writes public.search_runs. Places capped at 950 Enterprise calls per month.
       max_concurrent_runs: 3
       queue:
         enabled: true
