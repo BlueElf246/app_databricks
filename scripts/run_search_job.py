@@ -12,6 +12,7 @@ Usage:
     python scripts/run_search_job.py "phở" --mode youtube --max-results 10
     python scripts/run_search_job.py "quán sushi" --dry-run           # call the API, write nothing
     python scripts/run_search_job.py "quán sushi" --target prod      # job without the "[dev] " prefix
+    python scripts/run_search_job.py - --mode backfill_ratings --max-results 60  # Google rating for unrated places
 """
 import argparse
 import base64
@@ -74,7 +75,7 @@ def find_job(token: str | None, target: str) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("keyword")
-    parser.add_argument("--mode", choices=["places", "youtube"], default="places")
+    parser.add_argument("--mode", choices=["places", "youtube", "backfill_ratings"], default="places")
     parser.add_argument("--max-results", type=int, default=20)
     parser.add_argument("--dry-run", action="store_true", help="call the API but write nothing (testing a new feature)")
     parser.add_argument("--target", choices=["dev", "prod"], default="dev")
