@@ -257,7 +257,7 @@ def run_search(
     except QuotaReached as error:
         run["status"], run["error"] = "quota", str(error)
         print(f"⏸️ {error}; nothing called")
-        counts = {"api_calls": 0, "status": "quota"}
+        counts = {"api_calls": 0, "status": "quota", "error": str(error)[:500]}
     except Exception as error:
         run["status"], run["error"] = "error", str(error)[:2000]
         if not dry_run:
@@ -430,7 +430,7 @@ def run_backfill_ratings(limit: int = 60, dry_run: bool = False, databricks_run_
                 break
             continue
         if counts.get("status") == "quota":
-            stopped = "places quota (monthly cap or GCP daily quota)"
+            stopped = counts.get("error") or "places quota (monthly cap or GCP daily quota)"
             break
         done.append({"keyword": kw["keyword"], "unrated_before": kw["unrated_places"],
                      "places": counts.get("places", 0), "api_calls": counts.get("api_calls", 0)})
