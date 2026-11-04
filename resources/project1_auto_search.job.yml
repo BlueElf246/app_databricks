@@ -57,3 +57,4 @@ resources:
             job_id: ${resources.jobs.project1_daily.id}
             job_parameters:
               dry_run: "{{job.parameters.dry_run}}"
+              run_llm: "true"   # the daily run is the only one with ai_query / transcripts (2026-11-04)
