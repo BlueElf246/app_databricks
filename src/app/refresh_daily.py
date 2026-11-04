@@ -65,6 +65,24 @@ def fetch_videos() -> list[dict]:
     return videos
 
 
+def add_missing_channels(channels: list[dict], videos: list[dict]) -> list[dict]:
+    """videos.channel_id references channels. A saved video can now belong to a channel that is not saved
+    (the video moved to another channel), which broke the 2026-11-05 01h run with a foreign key error.
+    Read those channels from the API and add them; drop the videos whose channel the API does not return."""
+    saved = set(_saved_ids("channels", "channel_id")) | {c["channel_id"] for c in channels}
+    missing = sorted({v["channel_id"] for v in videos if v.get("channel_id") and v["channel_id"] not in saved})
+    if not missing:
+        return videos
+    found = {}
+    for batch in _batches(missing):
+        found.update(get_channels(batch))
+    channels.extend(found.values())
+    kept = [v for v in videos if not v.get("channel_id") or v["channel_id"] in saved or v["channel_id"] in found]
+    print(f"channels: {len(missing)} not saved yet (videos moved channel), {len(found)} added from the API; "
+          f"{len(videos) - len(kept)} videos skipped (channel not returned)")
+    return kept
+
+
 def check_source(name: str, rows: list[dict], counter: str) -> None:
     if not rows:
         raise EmptySourceError(f"{name}: the API returned 0 rows")
@@ -82,6 +100,7 @@ def main(argv: list[str] | None = None) -> dict[str, int]:
 
     channels = fetch_channels()
     videos = fetch_videos()
+    videos = add_missing_channels(channels, videos)
     check_source("channels", channels, "subscriber_count")
     check_source("videos", videos, "view_count")
 
