@@ -1,5 +1,6 @@
-# Refresh job (2026-11-03, datle: 3 jobs): refresh -> Bronze -> every Silver task -> Gold -> serving, every 3 h
-# (04/07/10/13/16/19/22h VN, plus 01h when project1_auto_search triggers it). The other two jobs:
+# Refresh job (2026-11-03, datle: 3 jobs): refresh -> Bronze -> every Silver task -> Gold -> serving,
+# 3 runs a day since 2026-11-04 (01h when project1_auto_search triggers it with run_llm = true, then 10h / 19h without LLM).
+# The name still says "every 3h" because scripts/run_daily_job.py finds the job by name. The other two jobs:
 # project1_auto_search (daily 01h, then triggers this job) and project1_search (manual, no schedule).
 # Each task depends on the previous step, so a failure (empty-source guard, Gold checks) stops everything after it.
 # Free quotas per day (8 runs): YouTube ~280 units (stats) + <= comments_max_videos units (comments) per run
@@ -16,7 +17,9 @@ resources:
         osm_ingest (weekly OpenStreetMap snapshot, skipped on the other days) → stg_osm_restaurants feeds gold_restaurants.
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
-        quartz_cron_expression: "0 0 4,7,10,13,16,19,22 * * ?"   # 01h: triggered by project1_auto_search
+        # 2026-11-04: was every 3 h (04-22h); the Free Edition daily DBU cap (~150-160 DBU) was hit, so 3 runs a day:
+        # 01h (triggered by project1_auto_search, run_llm = true) + 10h + 19h (stats / serving only, run_llm = false)
+        quartz_cron_expression: "0 0 10,19 * * ?"
         timezone_id: Asia/Ho_Chi_Minh
         pause_status: ${var.schedule_pause_status}
       max_concurrent_runs: 1
@@ -43,6 +46,10 @@ resources:
           default: ${var.dry_run}
         - name: comments_max_videos
           default: ${var.comments_max_videos}
+        # 2026-11-04: ai_query (classification, mentions, sentiment, reaction) and Gemini transcripts run only when
+        # "true": project1_auto_search passes true (01h run); the scheduled 10h / 19h runs skip them (notebook exit)
+        - name: run_llm
+          default: "false"
       tasks:
         - task_key: refresh_daily
           notebook_task:
@@ -227,7 +234,7 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/stg/comment_sentiment.ipynb
             base_parameters:
-              max_comments: "5000"
+              max_comments: "500"   # 2026-11-04: was 5000 (backlog done; once a day now)
           timeout_seconds: 3600
 
         # Dashboard v3 page 2 (2026-11-03): LLM reaction label (praise_food / complaint / craving / ask_info /
