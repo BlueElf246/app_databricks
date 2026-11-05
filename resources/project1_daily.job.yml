@@ -284,7 +284,7 @@ resources:
     project1_gold:
       name: ${var.job_name_prefix}Project 1 — 2. gold (poc tables)
       description: >-
-        Only the tables built with the LongChau poc method: one task per table, *_scd1 dims → fact_*_poc. Run by the orchestrator project1_daily after project1_stg. dim_google_review_scd1 / fact_place_rating_snapshot_poc read dim_restaurant, which the serving job rebuilds later in the run, so they see the previous run's restaurants.
+        Only the tables built with the LongChau poc method: one task per table, dims (*_scd0 / *_scd1 / dim_restaurant_scd2) → fact_*_poc. Run by the orchestrator project1_daily after project1_stg.
       # No schedule: run by the orchestrator job project1_daily (or by hand to rerun one layer)
       max_concurrent_runs: 1
       queue:
@@ -343,8 +343,26 @@ resources:
             notebook_path: ../src/notebooks/gold/dim_comment_scd1.ipynb
           timeout_seconds: 1800
 
-        # reads dim_restaurant (rebuilt by the serving job later in the run: previous run's restaurants)
+        - task_key: dim_date_scd0
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/dim_date_scd0.ipynb
+          timeout_seconds: 900
+
+        - task_key: dim_restaurant_scd2
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/dim_restaurant_scd2.ipynb
+          timeout_seconds: 1800
+
+        - task_key: dim_dish_scd1
+          depends_on:
+            - task_key: dim_restaurant_scd2
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/dim_dish_scd1.ipynb
+          timeout_seconds: 1800
+
         - task_key: dim_google_review_scd1
+          depends_on:
+            - task_key: dim_restaurant_scd2
           notebook_task:
             notebook_path: ../src/notebooks/gold/dim_google_review_scd1.ipynb
           timeout_seconds: 1800
@@ -380,8 +398,9 @@ resources:
             notebook_path: ../src/notebooks/gold/fact_video_restaurant_mention_poc.ipynb
           timeout_seconds: 1800
 
-        # reads dim_restaurant (previous run's restaurants, see dim_google_review_scd1)
         - task_key: fact_place_rating_snapshot_poc
+          depends_on:
+            - task_key: dim_restaurant_scd2
           notebook_task:
             notebook_path: ../src/notebooks/gold/fact_place_rating_snapshot_poc.ipynb
           timeout_seconds: 1800
