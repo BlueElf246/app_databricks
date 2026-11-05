@@ -4,7 +4,8 @@ This repo is a **Databricks Asset Bundle** (DAB). One file, `databricks.yml`, pl
 
 | Resource | Key in the bundle | What it is |
 | --- | --- | --- |
-| Job | `project1_daily` | Refresh → serving every 3 h (04/07/10/13/16/19/22h, plus 01h triggered by `project1_auto_search`): refresh → Bronze → Silver → Gold → checks → ranking |
+| Job | `project1_daily` | Orchestrator (10h, 19h, plus 01h triggered by `project1_auto_search`): runs `project1_stg` → `project1_gold` → `project1_serving`, then `run_summary` (2026-11-05: split by layer) |
+| Job | `project1_stg` / `project1_gold` / `project1_serving` | One job per layer (ingest → Bronze → Silver / poc tables `*_scd1`, `fact_*_poc` / current Gold + checks + agg tables, unchanged), no schedule: run by `project1_daily`, or alone to rerun one layer |
 | Job | `project1_auto_search` | Once a day at 01:00: auto_search, then runs `project1_daily` (2026-11-03; replaces `project1_stats_refresh`) |
 | Job | `project1_search` | Manual keyword search (YouTube / Google Places), no schedule: runs only when triggered (app, Jobs UI, `scripts/run_search_job.py`) |
 | App | `youtube_search` | The Streamlit app in `src/app` |
@@ -149,17 +150,18 @@ databricks bundle run project1_daily          # dev
 databricks bundle run project1_daily -t prod
 ```
 
-Everything **except** the refresh step. Use this while the api_key secret is missing, or to rebuild from what is already in Postgres:
+One layer only (2026-11-05: the pipeline is split into one job per layer):
 
 ```bash
-databricks bundle run project1_daily -t prod \
-  --only bronze_ingest,stg_channels,stg_videos,stg_comments,stg_search_results,stg_restaurant_mentions,gold_dims,stg_video_transcripts,gold_facts,gold_restaurants,gold_checks,gold_agg_ranking
+databricks bundle run project1_stg       # ingest → Bronze → Silver
+databricks bundle run project1_gold      # poc tables: *_scd1 dims, fact_*_poc
+databricks bundle run project1_serving   # current Gold dims / facts, checks, agg_* tables
 ```
 
-Only the refresh, as a dry run in prod (API call + guard, nothing written):
+Some tasks of one layer, e.g. only the refresh, as a dry run in prod (API call + guard, nothing written):
 
 ```bash
-databricks bundle run project1_daily -t prod --only refresh_daily --params dry_run=true
+databricks bundle run project1_stg -t prod --only refresh_daily --params dry_run=true
 ```
 
 The command prints a **Run URL**. Open it to watch the tasks. A failed task stops every task after it, and you get an email.

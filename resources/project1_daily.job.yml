@@ -1,8 +1,11 @@
-# Refresh job (2026-11-03, datle: 3 jobs): refresh -> Bronze -> every Silver task -> Gold -> serving,
+# 2026-11-05 (datle): split by layer so a failure is easy to trace. This job is now the ORCHESTRATOR: it runs
+# 3 child jobs in order, project1_stg (ingest -> Bronze -> Silver) -> project1_gold (only the poc tables: *_scd1,
+# fact_*_poc) -> project1_serving (current Gold + checks + agg_*, unchanged), then run_summary. A failing child stops the next ones; open the
+# child run from the run_stg / run_gold / run_serving task to see which notebook failed.
+# Before 2026-11-05 it held every task itself (refresh -> Bronze -> every Silver task -> Gold -> serving),
 # 3 runs a day since 2026-11-04 (01h when project1_auto_search triggers it with run_llm = true, then 10h / 19h without LLM).
 # The name still says "every 3h" because scripts/run_daily_job.py finds the job by name. The other two jobs:
 # project1_auto_search (daily 01h, then triggers this job) and project1_search (manual, no schedule).
-# Each task depends on the previous step, so a failure (empty-source guard, Gold checks) stops everything after it.
 # Free quotas per day (8 runs): YouTube ~280 units (stats) + <= comments_max_videos units (comments) per run
 # ~= 3,800 + auto_search ~2,100 of 10,000; Gemini transcripts, Places geocode / Place Details have their own
 # daily + monthly caps inside the notebooks (counted over all runs of the day); LLM tables only process new rows.
@@ -12,9 +15,7 @@ resources:
     project1_daily:
       name: ${var.job_name_prefix}Project 1 — refresh → serving (every 3h)
       description: >-
-        refresh → fetch_comments → Bronze → Silver (insert-only, one row per read: snapshot_ts; every Silver task, incl. transcripts / mentions / geocode / place details / sentiment) → silver_done → Gold dims → facts (read grain) → agg_daily_snapshots (serving, per day) → checks → agg_restaurant_daily_views → agg_restaurant_ranking.
-        stg_places + stg_restaurant_place_details (every Google read) → gold_place_rating (fact per read + agg_restaurant_rating_daily). bronze_retention keeps 7 days of Bronze.
-        osm_ingest (weekly OpenStreetMap snapshot, skipped on the other days) → stg_osm_restaurants feeds gold_restaurants.
+        Orchestrator: run_stg (job "1. stg": refresh, comments, OSM → Bronze → every Silver task → bronze_retention) → run_gold (job "2. gold": only the poc tables, *_scd1 dims → fact_*_poc) → run_serving (job "3. serving": current Gold + checks + agg_* tables, unchanged) → run_summary (always).
         Design: Notion "Redesign Project 1 data model with Kimball" 1.5.
       schedule:
         # 2026-11-04: was every 3 h (04-22h); the Free Edition daily DBU cap (~150-160 DBU) was hit, so 3 runs a day:
@@ -25,13 +26,94 @@ resources:
       max_concurrent_runs: 1
       queue:
         enabled: true   # a run that starts while another is running waits instead of being skipped
-      timeout_seconds: 7200
+      timeout_seconds: 14400   # the three child jobs together (stg alone can take ~2 h with transcripts)
       email_notifications:
         on_failure:
           - ${var.notification_email}
       tags:
         project: project1
         layer: medallion
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        # Serving layer (agg_* tables read by the dashboard / app / chat), created by the gold/agg_* notebooks (2026-11-02)
+        - name: serving
+          default: ${var.catalog}.${var.schema_prefix}serving
+        - name: dry_run
+          default: ${var.dry_run}
+        - name: comments_max_videos
+          default: ${var.comments_max_videos}
+        # 2026-11-04: ai_query (classification, mentions, sentiment, reaction) and Gemini transcripts run only when
+        # "true": project1_auto_search passes true (01h run); the scheduled 10h / 19h runs skip them (notebook exit)
+        - name: run_llm
+          default: "false"
+      tasks:
+        - task_key: run_stg
+          run_job_task:
+            job_id: ${resources.jobs.project1_stg.id}
+            job_parameters:
+              bronze: "{{job.parameters.bronze}}"
+              silver: "{{job.parameters.silver}}"
+              gold: "{{job.parameters.gold}}"
+              serving: "{{job.parameters.serving}}"
+              dry_run: "{{job.parameters.dry_run}}"
+              comments_max_videos: "{{job.parameters.comments_max_videos}}"
+              run_llm: "{{job.parameters.run_llm}}"
+
+        - task_key: run_gold
+          depends_on:
+            - task_key: run_stg
+          run_job_task:
+            job_id: ${resources.jobs.project1_gold.id}
+            job_parameters:
+              bronze: "{{job.parameters.bronze}}"
+              silver: "{{job.parameters.silver}}"
+              gold: "{{job.parameters.gold}}"
+              serving: "{{job.parameters.serving}}"
+              dry_run: "{{job.parameters.dry_run}}"
+              comments_max_videos: "{{job.parameters.comments_max_videos}}"
+              run_llm: "{{job.parameters.run_llm}}"
+
+        - task_key: run_serving
+          depends_on:
+            - task_key: run_gold
+          run_job_task:
+            job_id: ${resources.jobs.project1_serving.id}
+            job_parameters:
+              bronze: "{{job.parameters.bronze}}"
+              silver: "{{job.parameters.silver}}"
+              gold: "{{job.parameters.gold}}"
+              serving: "{{job.parameters.serving}}"
+              dry_run: "{{job.parameters.dry_run}}"
+              comments_max_videos: "{{job.parameters.comments_max_videos}}"
+              run_llm: "{{job.parameters.run_llm}}"
+
+        # Always runs (even after a failure): row counts + top 10 as JSON in the run output,
+        # so a chat session can review the run via the Jobs API (runs/get-output).
+        - task_key: run_summary
+          depends_on:
+            - task_key: run_serving
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/run_summary.ipynb
+          timeout_seconds: 900
+
+    project1_stg:
+      name: ${var.job_name_prefix}Project 1 — 1. stg (ingest → bronze → silver)
+      description: >-
+        refresh → fetch_comments → Bronze → Silver (insert-only, one row per read: snapshot_ts; every Silver task, incl. transcripts / mentions / geocode / place details / sentiment / reaction) → bronze_retention (keeps 7 days of Bronze). osm_ingest (weekly OpenStreetMap snapshot) → stg_osm_restaurants. Run by the orchestrator project1_daily.
+      # No schedule: run by the orchestrator job project1_daily (or by hand to rerun one layer)
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      timeout_seconds: 7200
+      tags:
+        project: project1
+        layer: stg
       parameters:
         - name: bronze
           default: ${var.catalog}.${resources.schemas.bronze.name}
@@ -162,24 +244,123 @@ resources:
             notebook_path: ../src/notebooks/stg/restaurant_place_details.ipynb
           timeout_seconds: 1800
 
-        # Barrier: every Silver task has finished before any Gold task starts (Bronze -> Silver -> Gold).
-        # Depends on the last Silver task of each branch; the others are upstream of these. A no-op today,
-        # the place for the Silver data checks (check_silver) later.
-        - task_key: silver_done
+        # LLM sentiment of comments on food review videos that mention a restaurant (most liked first, capped per run)
+        - task_key: stg_comment_sentiment
+          depends_on:
+            - task_key: stg_comments
+            - task_key: stg_restaurant_mentions
+            - task_key: stg_video_classification
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/comment_sentiment.ipynb
+            base_parameters:
+              max_comments: "500"   # 2026-11-04: was 5000 (backlog done; once a day now)
+          timeout_seconds: 3600
+
+        # Dashboard v3 page 2 (2026-11-03): LLM reaction label (praise_food / complaint / craving / ask_info /
+        # praise_video / other) of the top 50 most liked comments of the 30 trending restaurant review videos
+        - task_key: stg_comment_reaction
+          depends_on:
+            - task_key: stg_comments
+            - task_key: stg_videos
+            - task_key: stg_video_classification
+          notebook_task:
+            notebook_path: ../src/notebooks/stg/comment_reaction.ipynb
+          timeout_seconds: 1800
+
+        # Bronze keeps 7 days, and only rows already loaded into silver (silver watermark). Last task of the stg job:
+        # it depends on the last Silver task of each branch (the others are upstream), so every Silver task has read Bronze.
+        - task_key: bronze_retention
           depends_on:
             - task_key: stg_channels
             - task_key: stg_search_results
             - task_key: stg_osm_restaurants
-            - task_key: stg_restaurant_place_details  # after stg_videos, classification, transcripts, mentions, geocode, stg_places
-            - task_key: stg_comment_sentiment         # after stg_comments, mentions, classification
-            - task_key: stg_comment_reaction          # after stg_comments, stg_videos, classification
-          condition_task:
-            op: EQUAL_TO
-            left: "1"
-            right: "1"
+            - task_key: stg_restaurant_place_details
+            - task_key: stg_comment_sentiment
+            - task_key: stg_comment_reaction
+          notebook_task:
+            notebook_path: ../src/notebooks/bronze/retention.ipynb
+          timeout_seconds: 900
 
+    project1_gold:
+      name: ${var.job_name_prefix}Project 1 — 2. gold (poc tables)
+      description: >-
+        Only the tables built with the LongChau poc method: *_scd1 dims (dims_scd1) → fact_*_poc (facts_poc). Run by the orchestrator project1_daily after project1_stg. dim_google_review_scd1 / fact_place_rating_snapshot_poc read dim_restaurant, which the serving job rebuilds later in the run, so they see the previous run's restaurants.
+      # No schedule: run by the orchestrator job project1_daily (or by hand to rerun one layer)
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      timeout_seconds: 3600
+      tags:
+        project: project1
+        layer: gold
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        # Serving layer (agg_* tables read by the dashboard / app / chat), created by the gold/agg_* notebooks (2026-11-02)
+        - name: serving
+          default: ${var.catalog}.${var.schema_prefix}serving
+        - name: dry_run
+          default: ${var.dry_run}
+        - name: comments_max_videos
+          default: ${var.comments_max_videos}
+        # 2026-11-04: ai_query (classification, mentions, sentiment, reaction) and Gemini transcripts run only when
+        # "true": project1_auto_search passes true (01h run); the scheduled 10h / 19h runs skip them (notebook exit)
+        - name: run_llm
+          default: "false"
+      tasks:
+        # 2026-11-04 (datle, test): every SCD 1 dim rebuilt with the LongChau poc checksum method into *_scd1 tables
+        # (gold/dims_scd1 runs dim_channel/video/commenter/keyword/comment/google_review_scd1). Only gold_facts_poc reads them;
+        # widgets load_type / from_date / to_date use their defaults (incremental,
+        # yesterday .. tomorrow VN).
+        - task_key: gold_dims_scd1
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/dims_scd1.ipynb
+          timeout_seconds: 1800
+
+        # Test facts built the poc way (fact_*_poc: add_checksums + full_refresh / upsert on primary_checksum),
+        # keys from the *_scd1 dims. Nothing depends on this task; the live facts and agg tables are unchanged.
+        - task_key: gold_facts_poc
+          depends_on: [{task_key: gold_dims_scd1}]
+          notebook_task:
+            notebook_path: ../src/notebooks/gold/facts_poc.ipynb
+          timeout_seconds: 1800
+
+    project1_serving:
+      name: ${var.job_name_prefix}Project 1 — 3. serving (current gold + agg)
+      description: >-
+        Unchanged from the single job before 2026-11-05: current Gold dims → facts → agg_daily_snapshots → checks → agg_restaurant_daily_views; dim_restaurant / dim_dish / mentions → place rating (fact + agg_restaurant_rating_daily); sentiment → agg_restaurant_comments → agg_restaurant_ranking → agg_video_trending, agg_channel_ranking. Run by the orchestrator project1_daily after project1_gold.
+      # No schedule: run by the orchestrator job project1_daily (or by hand to rerun one layer)
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      timeout_seconds: 3600
+      tags:
+        project: project1
+        layer: serving
+      parameters:
+        - name: bronze
+          default: ${var.catalog}.${resources.schemas.bronze.name}
+        - name: silver
+          default: ${var.catalog}.${resources.schemas.silver.name}
+        - name: gold
+          default: ${var.catalog}.${resources.schemas.gold.name}
+        # Serving layer (agg_* tables read by the dashboard / app / chat), created by the gold/agg_* notebooks (2026-11-02)
+        - name: serving
+          default: ${var.catalog}.${var.schema_prefix}serving
+        - name: dry_run
+          default: ${var.dry_run}
+        - name: comments_max_videos
+          default: ${var.comments_max_videos}
+        # 2026-11-04: ai_query (classification, mentions, sentiment, reaction) and Gemini transcripts run only when
+        # "true": project1_auto_search passes true (01h run); the scheduled 10h / 19h runs skip them (notebook exit)
+        - name: run_llm
+          default: "false"
+      tasks:
         - task_key: gold_dims
-          depends_on: [{task_key: silver_done, outcome: "true"}]
           notebook_task:
             notebook_path: ../src/notebooks/gold/dims.ipynb
           timeout_seconds: 1800
@@ -210,24 +391,6 @@ resources:
             notebook_path: ../src/notebooks/gold/place_rating.ipynb
           timeout_seconds: 900
 
-        # 2026-11-04 (datle, test): every SCD 1 dim rebuilt with the LongChau poc checksum method into *_scd1 tables
-        # (gold/dims_scd1 runs dim_channel/video/commenter/keyword/comment/google_review_scd1). Nothing reads them yet,
-        # so no task depends on this one; widgets load_type / from_date / to_date use their defaults (incremental,
-        # yesterday .. tomorrow VN).
-        - task_key: gold_dims_scd1
-          depends_on: [{task_key: gold_restaurants}]   # after gold_dims (silver_done) and dim_restaurant
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/dims_scd1.ipynb
-          timeout_seconds: 1800
-
-        # Test facts built the poc way (fact_*_poc: add_checksums + full_refresh / upsert on primary_checksum),
-        # keys from the *_scd1 dims. Nothing depends on this task; the live facts and agg tables are unchanged.
-        - task_key: gold_facts_poc
-          depends_on: [{task_key: gold_dims_scd1}]
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/facts_poc.ipynb
-          timeout_seconds: 1800
-
         - task_key: gold_checks
           depends_on:
             - task_key: gold_agg_daily_snapshots
@@ -241,29 +404,6 @@ resources:
           depends_on: [{task_key: gold_checks}]
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_restaurant_daily_views.ipynb
-          timeout_seconds: 1800
-
-        # LLM sentiment of comments on food review videos that mention a restaurant (most liked first, capped per run)
-        - task_key: stg_comment_sentiment
-          depends_on:
-            - task_key: stg_comments
-            - task_key: stg_restaurant_mentions
-            - task_key: stg_video_classification
-          notebook_task:
-            notebook_path: ../src/notebooks/stg/comment_sentiment.ipynb
-            base_parameters:
-              max_comments: "500"   # 2026-11-04: was 5000 (backlog done; once a day now)
-          timeout_seconds: 3600
-
-        # Dashboard v3 page 2 (2026-11-03): LLM reaction label (praise_food / complaint / craving / ask_info /
-        # praise_video / other) of the top 50 most liked comments of the 30 trending restaurant review videos
-        - task_key: stg_comment_reaction
-          depends_on:
-            - task_key: stg_comments
-            - task_key: stg_videos
-            - task_key: stg_video_classification
-          notebook_task:
-            notebook_path: ../src/notebooks/stg/comment_reaction.ipynb
           timeout_seconds: 1800
 
         # Restaurant x comment (split credit) with sentiment, for agg_restaurant_ranking and the dashboard
@@ -299,24 +439,3 @@ resources:
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_channel_ranking.ipynb
           timeout_seconds: 1800
-
-        # Bronze keeps 7 days, and only rows already loaded into silver (silver watermark); runs after silver + checks
-        - task_key: bronze_retention
-          depends_on: [{task_key: gold_checks}]  # after silver_done, so every Silver task has read Bronze
-          notebook_task:
-            notebook_path: ../src/notebooks/bronze/retention.ipynb
-          timeout_seconds: 900
-
-        # Always runs (even after a failure): row counts + top 10 as JSON in the run output,
-        # so a chat session can review the run via the Jobs API (runs/get-output).
-        - task_key: run_summary
-          depends_on:
-            - task_key: gold_agg_ranking
-            - task_key: gold_agg_video_trending
-            - task_key: gold_agg_channel_ranking
-            - task_key: gold_place_rating
-            - task_key: bronze_retention
-          run_if: ALL_DONE
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/run_summary.ipynb
-          timeout_seconds: 900

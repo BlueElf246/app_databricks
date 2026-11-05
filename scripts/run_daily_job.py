@@ -19,6 +19,24 @@ JOB_NAME = "Project 1 — refresh → serving (every 3h)"
 AUTO_SEARCH_JOB_NAME = "Project 1 — auto search (daily 01h)"
 
 
+def _print_tasks(token: str, run: dict, indent: str = "") -> None:
+    """Print each task's state and error; a run_job_task (2026-11-05: the refresh job runs the stg / gold / serving
+    jobs) is expanded into the tasks of the child run it triggered."""
+    for task in sorted(run.get("tasks", []), key=lambda t: t.get("start_time") or 0):
+        state = task.get("state", {})
+        minutes = round((task.get("execution_duration") or 0) / 60000, 1)
+        print(f"{indent}- {task['task_key']}: {state.get('result_state') or state.get('life_cycle_state')} ({minutes} min)")
+        if "run_job_task" in task and task.get("run_id"):
+            output = _api(token, "GET", "jobs/runs/get-output", query={"run_id": task["run_id"]})
+            child_id = (output.get("run_job_output") or {}).get("run_id")
+            if child_id:
+                _print_tasks(token, _api(token, "GET", "jobs/runs/get", query={"run_id": child_id}), indent + "    ")
+                continue
+        if state.get("result_state") not in (None, "SUCCESS", "EXCLUDED"):
+            output = _api(token, "GET", "jobs/runs/get-output", query={"run_id": task["run_id"]})
+            print(f"{indent}  ERROR: {output.get('error')}\n{indent}  {(output.get('error_trace') or '')[-1500:]}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true")
@@ -51,13 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         time.sleep(20)
 
     print(f"result: {run['state'].get('result_state')} · {run.get('run_page_url')}")
-    for task in sorted(run.get("tasks", []), key=lambda t: t.get("start_time") or 0):
-        state = task.get("state", {})
-        minutes = round((task.get("execution_duration") or 0) / 60000, 1)
-        print(f"- {task['task_key']}: {state.get('result_state') or state.get('life_cycle_state')} ({minutes} min)")
-        if state.get("result_state") not in (None, "SUCCESS"):
-            output = _api(token, "GET", "jobs/runs/get-output", query={"run_id": task["run_id"]})
-            print(f"  ERROR: {output.get('error')}\n  {(output.get('error_trace') or '')[-1500:]}")
+    _print_tasks(token, run)
     summary = next((t for t in run.get("tasks", []) if t["task_key"] == "run_summary"), None)
     if summary:
         output = _api(token, "GET", "jobs/runs/get-output", query={"run_id": summary["run_id"]})
