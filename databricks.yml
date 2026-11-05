@@ -104,6 +104,15 @@ targets:
               level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
+        # 2026-11-05: one job per layer, run by project1_daily. Same ACL: datle owns them, so they run as datle.
+        project1_stg: &layer_job_permissions
+          permissions:
+            - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
+              level: IS_OWNER
+            - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
+              level: CAN_MANAGE_RUN
+        project1_gold: *layer_job_permissions
+        project1_serving: *layer_job_permissions
         project1_auto_search:
           # claude-search can run the auto search (+ the whole refresh) from the Claude chat (dev only)
           permissions:

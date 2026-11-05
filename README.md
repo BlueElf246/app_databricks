@@ -17,7 +17,7 @@ Streamlit app tìm kiếm video YouTube review quán ăn, lưu vào Lakebase Pos
 ├── databricks.yml                     # Bundle: variables + targets dev / prod (+ quyền của claude-deploy ở dev)
 ├── resources/
 │   ├── project1_auto_search.job.yml   # Auto search 01h, rồi chạy job refresh
-│   ├── project1_daily.job.yml         # Job refresh → serving, mỗi 3 giờ (toàn bộ medallion)
+│   ├── project1_daily.job.yml         # Job tổng (refresh → serving) + 3 job theo tầng: stg / gold / serving
 │   ├── project1_search.job.yml        # On-demand search job (1 keyword, YouTube hoặc Google Places)
 │   ├── restaurant_finder.dashboard.yml# AI/BI dashboard trên Gold
 │   ├── youtube_search.app.yml         # Streamlit app + resources (secret, SQL warehouse, search job)
@@ -156,27 +156,33 @@ Thêm vào Gold: `fact_google_review` (review × quán; từ 2026-11-02 là `dim
 
 `src/notebooks/gold/checks` fails the run on duplicate grains, missing Unknown rows, orphan or NULL fact keys, counters in dimensions, missing snapshot days, and `SUM(mention_weight) ≠ 1`.
 
-### 3 job (từ 03/11/2026)
+### Các job (cập nhật 05/11/2026: tách theo tầng)
 
 | Job | Lịch (giờ VN) | Làm gì |
 | --- | --- | --- |
-| **Project 1 — auto search (daily 01h)** (`project1_auto_search.job.yml`) | 01:00 | `auto_search` (kênh theo dõi, ~20 keyword YouTube, lưới Google Maps), rồi chạy job refresh |
-| **Project 1 — refresh → serving (every 3h)** (`project1_daily.job.yml`) | 04/07/10/13/16/19/22h + 01h (do auto search gọi) | refresh → Bronze → mọi task Silver → Gold → serving (bên dưới) |
+| **Project 1 — auto search (daily 01h)** (`project1_auto_search.job.yml`) | 01:00 | `auto_search` (kênh theo dõi, ~20 keyword YouTube, lưới Google Maps), rồi chạy job tổng với `run_llm = true` |
+| **Project 1 — refresh → serving (every 3h)** (`project1_daily`, job tổng) | 10h, 19h + 01h (do auto search gọi) | `run_stg` → `run_gold` → `run_serving` → `run_summary` (luôn chạy) |
+| **Project 1 — 1. stg (ingest → bronze → silver)** (`project1_stg`) | không lịch, job tổng gọi | refresh, comments, OSM → Bronze → mọi task Silver → `bronze_retention` |
+| **Project 1 — 2. gold (poc tables)** (`project1_gold`) | không lịch, job tổng gọi | chỉ các bảng làm theo poc: `*_scd1` (dims_scd1) → `fact_*_poc` (facts_poc) |
+| **Project 1 — 3. serving (current gold + agg)** (`project1_serving`) | không lịch, job tổng gọi | giữ như cũ: Gold hiện tại (dims, facts, restaurants, place rating) → `gold_checks` → các bảng `agg_*` |
 | **Project 1 — search** (`project1_search.job.yml`) | chạy tay | Tìm 1 keyword (YouTube hoặc Google Places) |
 
-Job refresh: serverless, queue bật (run tới khi run khác đang chạy thì chờ), email khi lỗi. Một task lỗi thì các task phía sau dừng:
+Mọi job: serverless, queue bật (run tới khi run khác đang chạy thì chờ). Email khi lỗi gửi từ job tổng. Một job con lỗi thì các job sau dừng; mở task `run_stg` / `run_gold` / `run_serving` trong run của job tổng để vào run của job con và xem notebook nào lỗi. Muốn chạy lại một tầng thì chạy riêng job con đó.
 
 ```
-refresh_daily → fetch_comments → bronze_ingest
-osm_ingest → stg_osm_restaurants  (song song; chỉ gọi Overpass 1 lần / tuần)
-bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results / stg_places
-stg_videos → stg_video_classification → gold_dims → gold_facts → gold_agg_daily_snapshots
-gold_dims → stg_video_transcripts → stg_restaurant_mentions → stg_restaurant_geocode → stg_restaurant_place_details
-stg_restaurant_place_details + stg_places + gold_restaurants → gold_place_rating → run_summary
-gold_agg_daily_snapshots + gold_restaurants (dims + place details + places + OSM) → gold_checks → gold_agg_daily_views
-gold_checks + Silver → bronze_retention (7 ngày) → run_summary
-stg_comment_sentiment → gold_agg_comments
-gold_agg_daily_views + gold_agg_comments → gold_agg_ranking → run_summary
+1. stg:      refresh_daily → fetch_comments → bronze_ingest
+             osm_ingest → stg_osm_restaurants  (song song; chỉ gọi Overpass 1 lần / tuần)
+             bronze_ingest → stg_channels / stg_videos / stg_comments / stg_search_results / stg_places
+             stg_videos → stg_video_classification → stg_video_transcripts → stg_restaurant_mentions
+               → stg_restaurant_geocode → stg_restaurant_place_details
+             stg_comments + mentions + classification → stg_comment_sentiment, stg_comment_reaction
+             mọi nhánh Silver → bronze_retention (7 ngày)
+2. gold:     gold_dims_scd1 → gold_facts_poc   (chỉ bảng poc; dim_restaurant lấy từ run trước)
+3. serving:  gold_dims → gold_facts → gold_agg_daily_snapshots
+             gold_dims → gold_restaurants → gold_place_rating
+             gold_agg_daily_snapshots + gold_restaurants → gold_checks → gold_agg_daily_views, gold_agg_comments
+             gold_agg_daily_views + gold_agg_comments + gold_place_rating → gold_agg_ranking
+               → gold_agg_video_trending, gold_agg_channel_ranking
 ```
 
 Guards: `refresh_daily.py` dừng **trước khi ghi** nếu API trả 0 dòng hoặc > 20% counter = 0; mọi lần ghi là atomic (MERGE / `replaceWhere` / `CREATE OR REPLACE`); mọi date key theo giờ Việt Nam. Các task gọi API ngoài (auto_search, fetch_comments, geocode, place details, transcripts) **không fail** khi hết quota: gặp HTTP 429 là dừng gọi, phần còn lại chờ run sau.
