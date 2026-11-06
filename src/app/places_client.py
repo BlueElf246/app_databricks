@@ -10,8 +10,12 @@ are two masks (callers count calls per SKU, see search_task.py):
   call is Text Search Enterprise (1,000 free calls / month).
 - "pro" (auto_search: the calls after the first 30 Enterprise ones each day, 2026-11-03): only Pro fields (id, name, address,
   location, types, business status, Maps link), so every call is Text Search Pro
-  (5,000 free calls / month, shared with stg_restaurant_geocode). The missing
-  fields come later from Place Details (stg/restaurant_place_details).
+  (5,000 free calls / month). The missing fields come later from Place Details
+  (stg/restaurant_place_details) or from a later Enterprise search read.
+
+Since 2026-11-06 both masks also ask primaryTypeDisplayName and addressComponents
+(Pro fields, no SKU change); stg/places parses them from `raw`. Atmosphere fields
+(reviews, parkingOptions, ...) are NOT asked: Place Details got none in Vietnam.
 
 Key: env MAPS_API_KEY (set by the job notebook from secret maps/api_key), else
 the Databricks secret maps/api_key read through the SDK.
@@ -35,6 +39,9 @@ PRO_FIELDS = [
     "places.types",
     "places.businessStatus",
     "places.googleMapsUri",
+    # 2026-11-06 (PR B): Pro fields that stg/places keeps, so a found place needs no Place Details call
+    "places.primaryTypeDisplayName",
+    "places.addressComponents",
     "nextPageToken",
 ]
 # Any one of these makes the call Text Search Enterprise
