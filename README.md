@@ -183,9 +183,9 @@ Mọi job: serverless, queue bật (run tới khi run khác đang chạy thì ch
              dim_*_scd1 → fact_video_snapshot_poc, fact_channel_snapshot_poc, fact_search_hit_poc,
                fact_video_restaurant_mention_poc
              (chỉ bảng poc)
-3. serving:  gold_dims → gold_facts → gold_agg_daily_snapshots
-             gold_dims → gold_restaurants → gold_place_rating
-             gold_agg_daily_snapshots + gold_restaurants → gold_checks → gold_agg_daily_views, gold_agg_comments
+3. serving:  (chỉ đọc bảng poc Gold, từ 06/11)
+             gold_agg_daily_snapshots → gold_checks → gold_agg_daily_views, gold_agg_comments
+             gold_place_rating (agg_restaurant_rating_daily)
              gold_agg_daily_views + gold_agg_comments + gold_place_rating → gold_agg_ranking
                → gold_agg_video_trending, gold_agg_channel_ranking
 ```

@@ -76,7 +76,7 @@ cols = set(spark.table(RANKING).columns)
 def col(name, cast="BIGINT"):
     return f"r.{name}" if name in cols else f"CAST(NULL AS {cast})"
 
-# District / ward (dim_restaurant v2, 2026-11-02): agg_restaurant_ranking carries the old district with its GSO
+# District / ward (dim_restaurant_scd2 v2, 2026-11-02): agg_restaurant_ranking carries the old district with its GSO
 # code (Google > video > the new ward's only old district), every old district of the new ward (districts_old,
 # e.g. "Quận 7|Quận 8") and the new ward (ward_new). Built in gold/restaurants from src/reference/*.csv.
 # Same district normalization as the dashboard's "restaurants" dataset (keep in sync).
@@ -100,9 +100,9 @@ r2 AS (
 ),
 videos AS (   -- review videos per restaurant with their latest view count
   SELECT m.restaurant_id, v.title, v.video_url, c.channel_title, s.view_count
-  FROM {GOLD}.fact_video_restaurant_mention m
-  JOIN {GOLD}.dim_video v      ON v.video_key = m.video_key
-  LEFT JOIN {GOLD}.dim_channel c ON c.channel_id = v.channel_id
+  FROM {GOLD}.fact_video_restaurant_mention_poc m
+  JOIN {GOLD}.dim_video_scd1 v      ON v.video_key = m.video_key
+  LEFT JOIN {GOLD}.dim_channel_scd1 c ON c.channel_id = v.channel_id
   LEFT JOIN (SELECT video_key, max_by(view_count, snapshot_date_key) AS view_count
              FROM {VIDEO_DAILY} GROUP BY video_key) s ON s.video_key = m.video_key
   WHERE m.restaurant_id <> 'unknown'
@@ -131,7 +131,7 @@ picked AS (
          t.top_video_url, t.top_video_title, t.top_video_channel, t.top_video_views,
          r.as_of_date_key
   FROM r2 r LEFT JOIN top_video t ON t.restaurant_id = r.restaurant_id
-  WHERE COALESCE(r.is_active_, true)   -- permanently closed on Google (dim_restaurant v2)
+  WHERE COALESCE(r.is_active_, true)   -- permanently closed on Google (dim_restaurant_scd2 v2)
     AND (:city = '' OR r.city ILIKE concat('%', :city, '%'))
     AND (:district_no = 0
          OR r.district_norm = concat('Quận ', :district_no)
