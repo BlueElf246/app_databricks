@@ -406,9 +406,9 @@ resources:
           timeout_seconds: 1800
 
     project1_serving:
-      name: ${var.job_name_prefix}Project 1 — 3. serving (current gold + agg)
+      name: ${var.job_name_prefix}Project 1 — 3. serving (agg from poc gold)
       description: >-
-        Unchanged from the single job before 2026-11-05: current Gold dims → facts → agg_daily_snapshots → checks → agg_restaurant_daily_views; dim_restaurant / dim_dish / mentions → place rating (fact + agg_restaurant_rating_daily); sentiment → agg_restaurant_comments → agg_restaurant_ranking → agg_video_trending, agg_channel_ranking. Run by the orchestrator project1_daily after project1_gold.
+        Since 2026-11-06 reads only the poc Gold tables of project1_gold (dim_*_scd1 / dim_restaurant_scd2 / dim_date_scd0, fact_*_poc): agg_daily_snapshots → checks → agg_restaurant_daily_views, agg_restaurant_comments; place_rating (agg_restaurant_rating_daily); → agg_restaurant_ranking → agg_video_trending, agg_channel_ranking. Run by the orchestrator project1_daily after project1_gold.
       # No schedule: run by the orchestrator job project1_daily (or by hand to rerun one layer)
       max_concurrent_runs: 1
       queue:
@@ -436,33 +436,16 @@ resources:
         - name: run_llm
           default: "false"
       tasks:
-        - task_key: gold_dims
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/dims.ipynb
-          timeout_seconds: 1800
-
-        - task_key: gold_facts
-          depends_on: [{task_key: gold_dims}]
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/facts.ipynb
-          timeout_seconds: 1800
-
+        # 2026-11-06: serving reads the poc Gold tables built by project1_gold (dim_*_scd*, fact_*_poc).
+        # The old Gold notebooks (gold_dims, gold_facts, gold_restaurants) no longer run.
         # Serving: video / channel x day (last read of the day + gains) from the read-grain snapshot facts
         - task_key: gold_agg_daily_snapshots
-          depends_on: [{task_key: gold_facts}]
           notebook_task:
             notebook_path: ../src/notebooks/gold/agg_daily_snapshots.ipynb
           timeout_seconds: 1800
 
-        - task_key: gold_restaurants
-          depends_on: [{task_key: gold_dims}]
-          notebook_task:
-            notebook_path: ../src/notebooks/gold/restaurants.ipynb
-          timeout_seconds: 1800
-
-        # Google rating: fact at read grain (place x snapshot_ts) + serving agg_restaurant_rating_daily (dense per day)
+        # Google rating per day (agg_restaurant_rating_daily, dense) from fact_place_rating_snapshot_poc
         - task_key: gold_place_rating
-          depends_on: [{task_key: gold_restaurants}]
           notebook_task:
             notebook_path: ../src/notebooks/gold/place_rating.ipynb
           timeout_seconds: 900
@@ -470,7 +453,6 @@ resources:
         - task_key: gold_checks
           depends_on:
             - task_key: gold_agg_daily_snapshots
-            - task_key: gold_restaurants
           notebook_task:
             notebook_path: ../src/notebooks/gold/checks.ipynb
           timeout_seconds: 1800

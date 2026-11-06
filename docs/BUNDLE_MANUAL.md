@@ -5,7 +5,7 @@ This repo is a **Databricks Asset Bundle** (DAB). One file, `databricks.yml`, pl
 | Resource | Key in the bundle | What it is |
 | --- | --- | --- |
 | Job | `project1_daily` | Orchestrator (10h, 19h, plus 01h triggered by `project1_auto_search`): runs `project1_stg` → `project1_gold` → `project1_serving`, then `run_summary` (2026-11-05: split by layer) |
-| Job | `project1_stg` / `project1_gold` / `project1_serving` | One job per layer (ingest → Bronze → Silver / poc tables `dim_date_scd0`, `*_scd1`, `dim_restaurant_scd2`, `fact_*_poc` / current Gold + checks + agg tables, unchanged), no schedule: run by `project1_daily`, or alone to rerun one layer |
+| Job | `project1_stg` / `project1_gold` / `project1_serving` | One job per layer (ingest → Bronze → Silver / poc tables `dim_date_scd0`, `*_scd1`, `dim_restaurant_scd2`, `fact_*_poc` / checks + agg tables read from the poc Gold since 2026-11-06), no schedule: run by `project1_daily`, or alone to rerun one layer |
 | Job | `project1_auto_search` | Once a day at 01:00: auto_search, then runs `project1_daily` (2026-11-03; replaces `project1_stats_refresh`) |
 | Job | `project1_search` | Manual keyword search (YouTube / Google Places), no schedule: runs only when triggered (app, Jobs UI, `scripts/run_search_job.py`) |
 | App | `youtube_search` | The Streamlit app in `src/app` |
@@ -155,7 +155,7 @@ One layer only (2026-11-05: the pipeline is split into one job per layer):
 ```bash
 databricks bundle run project1_stg       # ingest → Bronze → Silver
 databricks bundle run project1_gold      # poc tables: dim_date_scd0, *_scd1, dim_restaurant_scd2, fact_*_poc
-databricks bundle run project1_serving   # current Gold dims / facts, checks, agg_* tables
+databricks bundle run project1_serving   # checks + agg_* tables (read the poc Gold)
 ```
 
 Some tasks of one layer, e.g. only the refresh, as a dry run in prod (API call + guard, nothing written):
