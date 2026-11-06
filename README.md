@@ -163,7 +163,7 @@ Thêm vào Gold: `fact_google_review` (review × quán; từ 2026-11-02 là `dim
 | **Project 1 — auto search (daily 01h)** (`project1_auto_search.job.yml`) | 01:00 | `auto_search` (kênh theo dõi, ~20 keyword YouTube, lưới Google Maps), rồi chạy job tổng với `run_llm = true` |
 | **Project 1 — refresh → serving (every 3h)** (`project1_daily`, job tổng) | 10h, 19h + 01h (do auto search gọi) | `run_stg` → `run_gold` → `run_serving` → `run_summary` (luôn chạy) |
 | **Project 1 — 1. stg (ingest → bronze → silver)** (`project1_stg`) | không lịch, job tổng gọi | refresh, comments, OSM → Bronze → mọi task Silver → `bronze_retention` |
-| **Project 1 — 2. gold (poc tables)** (`project1_gold`) | không lịch, job tổng gọi | chỉ các bảng làm theo poc, mỗi bảng một task: các dim `*_scd1` → các fact `fact_*_poc` |
+| **Project 1 — 2. gold (poc tables)** (`project1_gold`) | không lịch, job tổng gọi | chỉ các bảng làm theo poc, mỗi bảng một task: các dim (`dim_date_scd0`, `*_scd1`, `dim_restaurant_scd2`) → các fact `fact_*_poc` |
 | **Project 1 — 3. serving (current gold + agg)** (`project1_serving`) | không lịch, job tổng gọi | giữ như cũ: Gold hiện tại (dims, facts, restaurants, place rating) → `gold_checks` → các bảng `agg_*` |
 | **Project 1 — search** (`project1_search.job.yml`) | chạy tay | Tìm 1 keyword (YouTube hoặc Google Places) |
 
@@ -177,11 +177,12 @@ Mọi job: serverless, queue bật (run tới khi run khác đang chạy thì ch
                → stg_restaurant_geocode → stg_restaurant_place_details
              stg_comments + mentions + classification → stg_comment_sentiment, stg_comment_reaction
              mọi nhánh Silver → bronze_retention (7 ngày)
-2. gold:     dim_channel_scd1, dim_video_scd1, dim_commenter_scd1, dim_keyword_scd1, dim_google_review_scd1
+2. gold:     dim_date_scd0, dim_channel_scd1, dim_video_scd1, dim_commenter_scd1, dim_keyword_scd1, dim_restaurant_scd2
+             dim_restaurant_scd2 → dim_dish_scd1, dim_google_review_scd1, fact_place_rating_snapshot_poc
              dim_video_scd1 + dim_commenter_scd1 → dim_comment_scd1
              dim_*_scd1 → fact_video_snapshot_poc, fact_channel_snapshot_poc, fact_search_hit_poc,
-               fact_video_restaurant_mention_poc; fact_place_rating_snapshot_poc
-             (chỉ bảng poc; dim_restaurant lấy từ run trước)
+               fact_video_restaurant_mention_poc
+             (chỉ bảng poc)
 3. serving:  gold_dims → gold_facts → gold_agg_daily_snapshots
              gold_dims → gold_restaurants → gold_place_rating
              gold_agg_daily_snapshots + gold_restaurants → gold_checks → gold_agg_daily_views, gold_agg_comments
