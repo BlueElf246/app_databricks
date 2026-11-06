@@ -165,7 +165,7 @@ def _places(query: str, max_results: int, location: str | None, included_type: s
         )
     except PlacesClientError as error:
         # 429 RESOURCE_EXHAUSTED = the GCP project's own "SearchTextRequest per day" quota (shared with
-        # stg_restaurant_geocode): stop like the monthly cap; the keyword stays due for tomorrow
+        # stg/restaurant_geocode): stop like the monthly cap; the keyword stays due for tomorrow
         if error.status_code == 429:
             raise QuotaReached(f"Places daily quota of the GCP project reached (429): {str(error.detail)[:300]}") from error
         raise
