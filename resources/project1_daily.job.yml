@@ -132,6 +132,9 @@ resources:
         # "true": project1_auto_search passes true (01h run); the scheduled 10h / 19h runs skip them (notebook exit)
         - name: run_llm
           default: "false"
+        # Lakebase Postgres schema of this target ("public" in dev, "prod" in prod, 2026-11-08)
+        - name: pg_schema
+          default: ${var.pg_schema}
       tasks:
         - task_key: refresh_daily
           notebook_task:

@@ -78,7 +78,7 @@ Vì vậy `root_path`, `app_name`, `notification_email` của dev được cố 
 
 ### 1. Environment variables
 
-Local: `.env` at the repo root (see `.env.example`). Databricks App: `src/app/app.yaml` + the app resources in `resources/youtube_search.app.yml`.
+Local: `.env` at the repo root (see `.env.example`). Databricks App: `config` (command + env) and the app resources in `resources/youtube_search.app.yml`.
 
 | Variable | Used by | Note |
 | --- | --- | --- |

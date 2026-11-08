@@ -36,6 +36,9 @@ resources:
           default: ""
         - name: dry_run
           default: ${var.dry_run}
+        # Lakebase Postgres schema of this target ("public" in dev, "prod" in prod, 2026-11-08)
+        - name: pg_schema
+          default: ${var.pg_schema}
       tasks:
         - task_key: search
           notebook_task:
