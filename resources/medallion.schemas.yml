@@ -22,9 +22,16 @@ targets:
         bronze:
           lifecycle:
             prevent_destroy: true
+          grants: &deploy_grants
+            # claude-deploy deploys prod from cloud threads (2026-11-08)
+            - principal: 10d899a3-f900-4242-be6c-2922da0bb0cb
+              privileges:
+                - USE_SCHEMA
+                - MANAGE
         silver:
           lifecycle:
             prevent_destroy: true
+          grants: *deploy_grants
         gold:
           lifecycle:
             prevent_destroy: true
@@ -34,3 +41,7 @@ targets:
               privileges:
                 - USE_SCHEMA
                 - SELECT
+            - principal: 10d899a3-f900-4242-be6c-2922da0bb0cb  # claude-deploy
+              privileges:
+                - USE_SCHEMA
+                - MANAGE

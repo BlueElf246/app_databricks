@@ -57,6 +57,9 @@ variables:
   comments_max_videos:
     description: "Food review videos whose comments fetch_comments downloads per refresh run (commentThreads.list, 1 unit each; 8 runs / day since 2026-11-03)"
     default: "100"
+  pg_schema:
+    description: "Lakebase Postgres schema the app and the jobs read / write (2026-11-08: prod gets its own schema, created by init_db on first use)"
+    default: public
   schedule_pause_status:
     description: PAUSED or UNPAUSED for the daily schedule
     default: PAUSED
@@ -68,8 +71,9 @@ targets:
   dev:
     default: true
     variables:
-      # Daily run on (datle 31/10: auto search runs every day on dev)
-      schedule_pause_status: UNPAUSED
+      # 2026-11-08 (datle): prod is now the scheduled environment; dev is kept as a backup and only run by hand,
+      # so a dev deploy never re-enables the dev schedules (they share the Free Edition compute cap and API quotas).
+      schedule_pause_status: PAUSED
       # Fixed to datle (not ${workspace.current_user...}) so a deploy by the service principal
       # claude-deploy (cloud threads, later GitHub Actions) updates the same app, not a new one.
       app_name: yt-search-lemanhdat2112
@@ -125,17 +129,40 @@ targets:
     mode: production
     workspace:
       host: https://dbc-66b44822-7fe7.cloud.databricks.com
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      # Fixed to datle's folder (like dev), so datle and claude-deploy deploy the same prod jobs.
+      root_path: /Workspace/Users/lemanhdat2112@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
       schema_prefix: ""
       job_name_prefix: ""
       app_name: youtube-restaurant-search
-      # Set to UNPAUSED once the secret youtube/api_key exists and a dry run passed.
+      pg_schema: prod
+      notification_email: lemanhdat2112@gmail.com
+      # 2026-11-08: prod starts fresh (no copy of dev history). Set to UNPAUSED once a manual run passed.
       schedule_pause_status: PAUSED
+    # Same as dev: datle stays owner (jobs run as datle), claude-deploy can deploy from cloud threads.
+    # The FIRST prod deploy must be run by datle: a job created by the service principal is owned by it, and
+    # only a workspace admin can then give the ownership back.
+    permissions:
+      - user_name: lemanhdat2112@gmail.com
+        level: CAN_MANAGE
+      - service_principal_name: 10d899a3-f900-4242-be6c-2922da0bb0cb  # claude-deploy (cloud deploy, CI/CD)
+        level: CAN_MANAGE
     resources:
       jobs:
         project1_search:
           # Add the prod app's service principal here once the prod app exists.
-          permissions:
+          permissions: &prod_job_permissions
+            - user_name: lemanhdat2112@gmail.com  # stays owner, so the job runs as datle whoever deploys
+              level: IS_OWNER
             - service_principal_name: 634b1634-89b6-4ff7-a0ac-e32e87f5d382  # claude-search (Claude chat)
               level: CAN_MANAGE_RUN
+        project1_daily:
+          permissions: *prod_job_permissions
+        project1_stg:
+          permissions: *prod_job_permissions
+        project1_gold:
+          permissions: *prod_job_permissions
+        project1_serving:
+          permissions: *prod_job_permissions
+        project1_auto_search:
+          permissions: *prod_job_permissions

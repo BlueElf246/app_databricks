@@ -1,5 +1,6 @@
-# Streamlit app (src/app). Env vars live in src/app/app.yaml; the valueFrom names there refer to
-# the resources below.
+# Streamlit app (src/app). The run command and env vars live in `config` below (2026-11-08: moved from
+# src/app/app.yaml so the Postgres schema and the serving schema follow the target); value_from names refer
+# to the app resources.
 resources:
   apps:
     youtube_search:
@@ -22,3 +23,33 @@ resources:
           job:
             id: ${resources.jobs.project1_search.id}
             permission: CAN_MANAGE_RUN
+      config:
+        command:
+          - streamlit
+          - run
+          - app.py
+          - --server.port
+          - "$DATABRICKS_APP_PORT"
+          - --server.address
+          - "0.0.0.0"
+        env:
+          # Lakebase Postgres (project my-database, branch production)
+          - name: PGHOST
+            value: "ep-still-butterfly-d8fd3r70.database.us-east-2.cloud.databricks.com"
+          - name: PGDATABASE
+            value: "databricks_postgres"
+          - name: PGUSER
+            value: "admin"
+          - name: PGPASSWORD
+            value_from: pg-password
+          # Postgres schema of this target: public in dev, prod in prod
+          - name: APP_SCHEMA
+            value: ${var.pg_schema}
+          # Serving tables (agg_*) for the ranking page (YOUTUBE_API_KEY is read from secret youtube/api_key)
+          - name: DATABRICKS_WAREHOUSE_ID
+            value_from: sql-warehouse
+          - name: SERVING_SCHEMA
+            value: ${var.catalog}.${var.schema_prefix}serving
+          # Job run by the Search ingest page (resource search-job above)
+          - name: SEARCH_JOB_ID
+            value_from: search-job

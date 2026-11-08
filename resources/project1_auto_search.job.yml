@@ -39,6 +39,9 @@ resources:
           default: ${var.auto_channel_limit}
         - name: auto_places_count
           default: ${var.auto_places_count}
+        # Lakebase Postgres schema of this target ("public" in dev, "prod" in prod, 2026-11-08)
+        - name: pg_schema
+          default: ${var.pg_schema}
       tasks:
         # Source A first: new uploads of followed food channels (1 unit per channel), then the
         # system picks ~20 keywords and searches YouTube (design "Tự động search keyword");
